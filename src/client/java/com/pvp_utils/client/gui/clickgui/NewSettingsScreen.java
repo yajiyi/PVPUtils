@@ -73,6 +73,8 @@ public class NewSettingsScreen extends SkiaScreen {
     private float searchTextOffset = 0f;
     private float searchCursorTime = 0f;
     private long lastRenderMs = 0;
+    private float animatedClickGuiScale = -1f;
+    private float lastDelta = 0f;
 
     private float contentScrollOffset = 0f;
     private float targetScrollOffset = 0f;
@@ -163,7 +165,12 @@ public class NewSettingsScreen extends SkiaScreen {
         float fitY = Math.max(0.1f, (layoutHeight - SCREEN_MARGIN) / BASE_CARD_H);
         float fit = Math.min(1f, Math.min(fitX, fitY));
         float guiScale = minecraft == null ? 2f : Math.max(1f, (float) minecraft.getWindow().getGuiScale());
-        return fit * 2f / guiScale;
+        float[] scales = {0.75f, 1.0f, 1.25f};
+        float targetScale = scales[Math.max(0, Math.min(Config.clickGuiScale, scales.length - 1))];
+        if (animatedClickGuiScale < 0f) animatedClickGuiScale = targetScale;
+        animatedClickGuiScale += (targetScale - animatedClickGuiScale) * Math.min(1f, lastDelta * 12f);
+        if (Math.abs(animatedClickGuiScale - targetScale) < 0.001f) animatedClickGuiScale = targetScale;
+        return fit * 2f / guiScale * animatedClickGuiScale;
     }
 
     private float getVisualScale(int width, int height) {
@@ -424,6 +431,7 @@ public class NewSettingsScreen extends SkiaScreen {
         long now = System.currentTimeMillis();
         float dt = lastRenderMs == 0 ? 0.016f : Math.min((now - lastRenderMs) / 1000f, 0.033f);
         lastRenderMs = now;
+        lastDelta = dt;
 
         if (closing) {
             openProgress = clamp01(openProgress - dt / OPEN_DURATION);
@@ -920,7 +928,7 @@ public class NewSettingsScreen extends SkiaScreen {
         if (layoutMx >= contentX && layoutMx <= contentX + contentW && layoutMy >= contentY && layoutMy <= contentY + contentH) {
             BasePage page = activePage();
             updateScrollCache(page, contentH);
-            targetScrollOffset = Math.max(0f, Math.min(cachedScrollMax, targetScrollOffset + (float)(-vScroll * 16f)));
+            targetScrollOffset = Math.max(0f, Math.min(cachedScrollMax, targetScrollOffset + (float)(-vScroll * 16f * Math.max(0.2f, Config.clickGuiScrollSpeed))));
             invalidateScrollLayout();
             return true;
         }

@@ -4,6 +4,7 @@ import com.mojang.blaze3d.opengl.GlDevice;
 import com.mojang.blaze3d.opengl.GlTexture;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.pvp_utils.client.render.MainUI.MainUISharedBackground;
+import com.pvp_utils.client.render.MainUI.MainUiScale;
 import com.pvp_utils.client.render.font.FontRenderer;
 import com.pvp_utils.client.render.skia.SkiaBlurRenderer;
 import com.pvp_utils.client.render.skia.SkiaGlBackend;
@@ -82,9 +83,6 @@ public final class AltManagerScreen extends Screen {
         this.parent = parent;
         this.shaderPath = shaderPath;
         this.embeddedBack = embeddedBack;
-        if (shaderPath != null && !shaderPath.isBlank()) {
-            MainUISharedBackground.setActiveShader(shaderPath);
-        }
     }
 
     public void initEmbedded(Minecraft client, int width, int height) {
@@ -147,7 +145,7 @@ public final class AltManagerScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
-        if (embeddedBack == null || minecraft.screen == this) {
+        if (embeddedBack == null && minecraft.screen == this) {
             MainUISharedBackground.render(graphics, mouseX, mouseY);
         }
         this.mouseX = mouseX;
@@ -211,19 +209,20 @@ public final class AltManagerScreen extends Screen {
         float h = cardH();
         drawMainCard(canvas, x, y, w, h);
         String title = "Alt Manager";
+        float pageW = MainUiScale.pageWidth();
         FontRenderer.drawText(
                 canvas,
                 title,
-                width * .5f - FontRenderer.measureTextWidth(title, 30f) * .5f,
-                50f,
+                pageW * .5f - FontRenderer.measureTextWidth(title, 30f) * .5f,
+                titleY(),
                 30f,
                 (alpha << 24) | 0xFFFFFF
         );
         drawAccounts(canvas, x + 16f, y + 16f, w - 32f, h - 82f, alpha);
         if (!status.isBlank()) {
-            drawCentered(canvas, status, width * .5f, y + h - 40f, 10f, (Math.round(alpha * .62f) << 24) | 0xFFFFFF);
+            drawCentered(canvas, status, pageW * .5f, y + h - 40f, 10f, (Math.round(alpha * .62f) << 24) | 0xFFFFFF);
         }
-        drawCentered(canvas, currentLoginText(), width * .5f, y + h - 20f, 11f,
+        drawCentered(canvas, currentLoginText(), pageW * .5f, y + h - 20f, 11f,
                 (Math.round(alpha * .82f) << 24) | 0xFFFFFF);
         float buttonY = y + h + 12f;
         float buttonW = (w - 32f) / 5f;
@@ -243,8 +242,8 @@ public final class AltManagerScreen extends Screen {
                     mainFramebufferId(),
                     0f,
                     0f,
-                    width,
-                    height,
+                    pageW,
+                    MainUiScale.pageHeight(),
                     0f,
                     tintAlpha << 24,
                     0.45f + 0.50f * ease(modalProgress)
@@ -332,12 +331,12 @@ public final class AltManagerScreen extends Screen {
     }
 
     private void drawOfflineDialog(Canvas canvas) {
-        float w = Math.min(380f, width - 40f);
+        float w = Math.min(380f, MainUiScale.pageWidth() - 40f);
         float h = 190f;
-        float x = (width - w) * .5f;
-        float y = (height - h) * .5f;
+        float x = (MainUiScale.pageWidth() - w) * .5f;
+        float y = (MainUiScale.pageHeight() - h) * .5f;
         drawDialogCard(canvas, x, y, w, h);
-        drawCentered(canvas, "Add Offline", width * .5f, y + 38f, 18f, 0xFFFFFFFF);
+        drawCentered(canvas, "Add Offline", MainUiScale.pageWidth() * .5f, y + 38f, 18f, 0xFFFFFFFF);
         FontRenderer.drawText(canvas, "Username", x + 24f, y + 72f, 12f, 0xB8FFFFFF);
         drawInput(canvas, x + 24f, y + 84f, w - 48f, 34f);
         float buttonW = (w - 56f) * .5f;
@@ -346,26 +345,26 @@ public final class AltManagerScreen extends Screen {
     }
 
     private void drawDeleteDialog(Canvas canvas) {
-        float w = Math.min(380f, width - 40f);
+        float w = Math.min(380f, MainUiScale.pageWidth() - 40f);
         float h = 166f;
-        float x = (width - w) * .5f;
-        float y = (height - h) * .5f;
+        float x = (MainUiScale.pageWidth() - w) * .5f;
+        float y = (MainUiScale.pageHeight() - h) * .5f;
         drawDialogCard(canvas, x, y, w, h);
-        drawCentered(canvas, "Delete Account", width * .5f, y + 38f, 18f, 0xFFFFFFFF);
+        drawCentered(canvas, "Delete Account", MainUiScale.pageWidth() * .5f, y + 38f, 18f, 0xFFFFFFFF);
         String accountName = deleteTarget == null ? "this account" : deleteTarget.name();
-        drawCentered(canvas, "Delete " + accountName + "?", width * .5f, y + 82f, 13f, 0xCFFFFFFF);
+        drawCentered(canvas, "Delete " + accountName + "?", MainUiScale.pageWidth() * .5f, y + 82f, 13f, 0xCFFFFFFF);
         float buttonW = (w - 56f) * .5f;
         drawButton(canvas, x + 24f, y + 112f, buttonW, 30f, "Delete", 255);
         drawButton(canvas, x + 32f + buttonW, y + 112f, buttonW, 30f, "Cancel", 255);
     }
 
     private void drawMicrosoftDialog(Canvas canvas) {
-        float w = Math.min(380f, width - 40f);
+        float w = Math.min(380f, MainUiScale.pageWidth() - 40f);
         float h = 166f;
-        float x = (width - w) * .5f;
-        float y = (height - h) * .5f;
+        float x = (MainUiScale.pageWidth() - w) * .5f;
+        float y = (MainUiScale.pageHeight() - h) * .5f;
         drawDialogCard(canvas, x, y, w, h);
-        drawCentered(canvas, "Microsoft Login", width * .5f, y + 38f, 18f, 0xFFFFFFFF);
+        drawCentered(canvas, "Microsoft Login", MainUiScale.pageWidth() * .5f, y + 38f, 18f, 0xFFFFFFFF);
         if (microsoftSuccessAt > 0L) {
             FontRenderer.drawText(canvas, "\uE876", x + 24f, y + 83f, 24f, 0xFF62E58B, FontRenderer.MATERIAL_SYMBOLS);
         } else {
@@ -587,10 +586,10 @@ public final class AltManagerScreen extends Screen {
     }
 
     private void handleOfflineDialogClick(float mx, float my) {
-        float w = Math.min(380f, width - 40f);
+        float w = Math.min(380f, MainUiScale.pageWidth() - 40f);
         float h = 190f;
-        float x = (width - w) * .5f;
-        float y = (height - h) * .5f;
+        float x = (MainUiScale.pageWidth() - w) * .5f;
+        float y = (MainUiScale.pageHeight() - h) * .5f;
         float buttonW = (w - 56f) * .5f;
         if (inside(mx, my, x + 24f, y + 136f, buttonW, 30f)) {
             playClick();
@@ -942,7 +941,7 @@ public final class AltManagerScreen extends Screen {
     }
 
     private float cardH() {
-        return Math.max(280f, Math.min(height - 150f, height * .70f));
+        return Math.max(260f, Math.min(height - 154f, height * .72f));
     }
 
     private float cardX() {
@@ -950,6 +949,10 @@ public final class AltManagerScreen extends Screen {
     }
 
     private float cardY() {
-        return 72f;
+        return 76f;
+    }
+
+    private float titleY() {
+        return Math.min(50f, cardY() + 12f);
     }
 }

@@ -72,9 +72,6 @@ public class PVPUtilsSingleplayerScreen extends Screen {
         super(Component.literal("Single player"));
         this.shaderPath = shaderPath;
         this.embeddedBack = embeddedBack;
-        if (shaderPath != null && !shaderPath.isBlank()) {
-            MainUISharedBackground.setActiveShader(shaderPath);
-        }
     }
 
     public void initEmbedded(Minecraft client, int width, int height) {
@@ -168,7 +165,7 @@ public class PVPUtilsSingleplayerScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
-        if (embeddedBack == null || minecraft.screen == this) {
+        if (embeddedBack == null && minecraft.screen == this) {
             MainUISharedBackground.render(graphics, mouseX, mouseY);
         }
         scroll += (targetScroll - scroll) * 0.24f;

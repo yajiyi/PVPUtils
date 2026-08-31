@@ -93,6 +93,8 @@ public class Config {
     public static float itemPhysicsRotationSpeed = 1.0f;
     public static HudTheme hudTheme = HudTheme.LIGHT;
     public static float skiaBlurStrength = 1.0f;
+    public static int clickGuiScale = 1;
+    public static float clickGuiScrollSpeed = 1.0f;
     public static boolean timeChange = false;
     public static boolean weatherChange = false;
     public static boolean zoom = false;
@@ -789,6 +791,7 @@ public class Config {
             new ModuleRule("NameTags", "nameTag", "nameTag"),
             new ModuleRule("DynamicMotionBlur", "dynamicMotionBlur", "dynamicMotionBlur", "motionBlurAlgorithm"),
             new ModuleRule("HUDTheme", "hud", "", "skiaBlurStrength"),
+            new ModuleRule("ClickGuiScale", "clickGui", "", "clickGuiScale", "clickGuiScrollSpeed"),
             new ModuleRule("Notification", "notification", ""),
     };
 

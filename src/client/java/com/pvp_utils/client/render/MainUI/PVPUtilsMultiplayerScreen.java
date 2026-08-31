@@ -76,7 +76,6 @@ public final class PVPUtilsMultiplayerScreen extends Screen {
         this.parent = parent;
         this.shaderPath = shaderPath;
         this.embeddedBack = embeddedBack;
-        if (shaderPath != null && !shaderPath.isBlank()) MainUISharedBackground.setActiveShader(shaderPath);
     }
 
     public void initEmbedded(Minecraft client, int width, int height) {
@@ -152,7 +151,7 @@ public final class PVPUtilsMultiplayerScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
-        if (embeddedBack == null || minecraft.screen == this) {
+        if (embeddedBack == null && minecraft.screen == this) {
             MainUISharedBackground.render(graphics, mouseX, mouseY);
         }
         float layoutScale = layoutScale();

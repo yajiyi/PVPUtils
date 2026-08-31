@@ -88,8 +88,6 @@ public class DynamicIslandRenderer {
     private boolean nativeLoaded = false;
     private int textureW = -1;
     private int textureH = -1;
-    private int textureRegionW = -1;
-    private int textureRegionH = -1;
     private String lastContentKey = "";
     private float lastWidth = -1f;
     private float lastScale = -1f;
@@ -172,7 +170,7 @@ public class DynamicIslandRenderer {
         graphics.pose().scale(islandScale, islandScale);
         graphics.pose().translate(-x, -y);
         graphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE_ID, Math.round(x), Math.round(y), 0f, 0f,
-                Math.round(layout.width), Math.round(layout.height), textureRegionW, textureRegionH, textureW, textureH);
+                Math.round(layout.width), Math.round(layout.height), textureW, textureH, textureW, textureH);
         graphics.pose().popMatrix();
     }
 
@@ -347,18 +345,14 @@ public class DynamicIslandRenderer {
             return;
         }
 
-        if (surface == null || texture == null || targetW > textureW || targetH > textureH) {
+        if (surface == null || texture == null || targetW != textureW || targetH != textureH) {
             destroyTexture(client);
-            int capacityW = nextTextureCapacity(targetW);
-            int capacityH = nextTextureCapacity(targetH);
-            surface = Surface.makeRaster(new ImageInfo(new ColorInfo(ColorType.RGBA_8888, ColorAlphaType.UNPREMUL, null), capacityW, capacityH), 0, SURFACE_PROPS);
-            texture = new DynamicTexture("pvp_utils:dynamic_island_text", capacityW, capacityH, false);
+            surface = Surface.makeRaster(new ImageInfo(new ColorInfo(ColorType.RGBA_8888, ColorAlphaType.UNPREMUL, null), targetW, targetH), 0, SURFACE_PROPS);
+            texture = new DynamicTexture("pvp_utils:dynamic_island_text", targetW, targetH, false);
             client.getTextureManager().register(TEXTURE_ID, texture);
-            textureW = capacityW;
-            textureH = capacityH;
+            textureW = targetW;
+            textureH = targetH;
         }
-        textureRegionW = targetW;
-        textureRegionH = targetH;
 
         Canvas canvas = surface.getCanvas();
         canvas.restoreToCount(1);
@@ -381,7 +375,7 @@ public class DynamicIslandRenderer {
         }
         canvas.restore();
 
-        uploadSurface(surface, texture, textureW, textureH);
+        uploadSurface(surface, texture, targetW, targetH);
         lastContentKey = key;
         lastWidth = layout.width;
         lastScale = scale;
@@ -1082,8 +1076,6 @@ public class DynamicIslandRenderer {
         }
         textureW = -1;
         textureH = -1;
-        textureRegionW = -1;
-        textureRegionH = -1;
         lastContentKey = "";
         lastWidth = -1f;
         lastScale = -1f;
@@ -1115,14 +1107,6 @@ public class DynamicIslandRenderer {
 
     private int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
-    }
-
-    private int nextTextureCapacity(int value) {
-        int capacity = 64;
-        while (capacity < value) {
-            capacity *= 2;
-        }
-        return capacity;
     }
 
     private record IslandContent(String brand, String username, String location, String fps) {

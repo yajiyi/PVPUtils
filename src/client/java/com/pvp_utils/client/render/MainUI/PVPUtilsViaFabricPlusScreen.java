@@ -86,7 +86,6 @@ public final class PVPUtilsViaFabricPlusScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
-        MainUISharedBackground.render(graphics, mouseX, mouseY);
         scroll += (targetScroll - scroll) * 0.18f;
         detailScroll += (targetDetailScroll - detailScroll) * 0.18f;
         for (int i = 0; i < hoverAnimations.size(); i++) {
@@ -95,8 +94,8 @@ public final class PVPUtilsViaFabricPlusScreen extends Screen {
             float target = hovered ? 1f : 0f;
             hoverAnimations.set(i, current + (target - current) * 0.22f);
         }
-        pendingMouseX = mouseX;
-        pendingMouseY = mouseY;
+        pendingMouseX = MainUiScale.pageX(mouseX, this.width);
+        pendingMouseY = MainUiScale.pageY(mouseY, this.height);
         pendingFrame = true;
         if (closing && closeProgress() >= 1f && !closeDispatched) {
             closeDispatched = true;
@@ -106,6 +105,10 @@ public final class PVPUtilsViaFabricPlusScreen extends Screen {
                 minecraft.setScreen(parent);
             }
         }
+    }
+
+    @Override
+    protected void repositionElements() {
     }
 
     @Override
@@ -128,13 +131,13 @@ public final class PVPUtilsViaFabricPlusScreen extends Screen {
     }
 
     private void draw(Canvas canvas) {
-        float open = ease(Math.min(1f, (System.currentTimeMillis() - openStartMs) / (float) OPEN_MS));
+        float open = embedded ? 1f : ease(Math.min(1f, (System.currentTimeMillis() - openStartMs) / (float) OPEN_MS));
         float close = closing ? 1f - ease(closeProgress()) : 1f;
         float visibility = Math.min(open, close);
-        float cardW = Math.max(620f, Math.min(900f, width * 0.84f));
-        float cardH = Math.max(370f, Math.min(height - 100f, height * 0.78f));
-        float cardX = (width - cardW) * 0.5f;
-        float cardY = 50f + (1f - visibility) * 20f;
+        float cardW = cardW();
+        float cardH = cardH();
+        float cardX = cardX();
+        float cardY = cardY() + (1f - visibility) * 20f;
         int alpha = Math.round(255f * visibility);
 
         SkiaBlurRenderer.getInstance().render(canvas, glBackend.getContext(), Minecraft.getInstance(), mainFramebufferId(),
@@ -187,10 +190,16 @@ public final class PVPUtilsViaFabricPlusScreen extends Screen {
         }
 
         float bottomY = cardY + cardH - 42f;
-        drawBottomButton(canvas, cardX + 22f, bottomY, 92f, "Back", alpha, inside(pendingMouseX, pendingMouseY, cardX + 22f, bottomY, 92f, 26f));
-        drawBottomButton(canvas, cardX + cardW - 310f, bottomY, 92f, "Settings", alpha, inside(pendingMouseX, pendingMouseY, cardX + cardW - 310f, bottomY, 92f, 26f));
-        drawBottomButton(canvas, cardX + cardW - 210f, bottomY, 92f, "Servers", alpha, inside(pendingMouseX, pendingMouseY, cardX + cardW - 210f, bottomY, 92f, 26f));
-        drawBottomButton(canvas, cardX + cardW - 110f, bottomY, 88f, "Report", alpha, inside(pendingMouseX, pendingMouseY, cardX + cardW - 110f, bottomY, 88f, 26f));
+        float backW = bottomButtonW();
+        float backX = cardX + 22f;
+        float reportW = Math.min(88f, backW);
+        float reportX = cardX + cardW - 22f - reportW;
+        float serversX = reportX - 8f - backW;
+        float settingsX = serversX - 8f - backW;
+        drawBottomButton(canvas, backX, bottomY, backW, "Back", alpha, inside(pendingMouseX, pendingMouseY, backX, bottomY, backW, 26f));
+        drawBottomButton(canvas, settingsX, bottomY, backW, "Settings", alpha, inside(pendingMouseX, pendingMouseY, settingsX, bottomY, backW, 26f));
+        drawBottomButton(canvas, serversX, bottomY, backW, "Servers", alpha, inside(pendingMouseX, pendingMouseY, serversX, bottomY, backW, 26f));
+        drawBottomButton(canvas, reportX, bottomY, reportW, "Report", alpha, inside(pendingMouseX, pendingMouseY, reportX, bottomY, reportW, 26f));
     }
 
     private void drawGroup(Canvas canvas, int index, ViaFabricPlusBridge.ProtocolGroup group, Image image, float x, float y, float w, float h,
@@ -332,10 +341,10 @@ public final class PVPUtilsViaFabricPlusScreen extends Screen {
 
     private boolean isGroupHovered(int index) {
         if (index < 0 || index >= groups.size()) return false;
-        float cardW = Math.max(620f, Math.min(900f, width * 0.84f));
-        float cardH = Math.max(370f, Math.min(height - 100f, height * 0.78f));
-        float cardX = (width - cardW) * 0.5f;
-        float cardY = 50f;
+        float cardW = cardW();
+        float cardH = cardH();
+        float cardX = cardX();
+        float cardY = cardY();
         float detailY = cardY + 62f;
         float detailH = selectedGroup >= 0 ? 106f : 0f;
         float gridY = detailY + detailH + (selectedGroup >= 0 ? 10f : 0f);
@@ -355,14 +364,16 @@ public final class PVPUtilsViaFabricPlusScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        float cardW = Math.max(620f, Math.min(900f, width * 0.84f));
-        float cardH = Math.max(370f, Math.min(height - 100f, height * 0.78f));
-        float cardX = (width - cardW) * 0.5f;
-        float cardY = 50f;
+        float pageX = MainUiScale.pageX((int) mouseX, this.width);
+        float pageY = MainUiScale.pageY((int) mouseY, this.height);
+        float cardW = cardW();
+        float cardH = cardH();
+        float cardX = cardX();
+        float cardY = cardY();
         float detailY = cardY + 62f;
         float detailH = selectedGroup >= 0 ? 106f : 0f;
         if (selectedGroup >= 0
-                && inside(mouseX, mouseY, cardX + 23f, detailY + 35f, cardW - 46f, detailH - 36f)) {
+                && inside(pageX, pageY, cardX + 23f, detailY + 35f, cardW - 46f, detailH - 36f)) {
             List<ViaFabricPlusBridge.ProtocolEntry> entries = groups.get(selectedGroup).entries();
             float buttonW = Math.max(72f, Math.min(118f, (cardW - 72f) / Math.min(7f, Math.max(1, entries.size())) - 6f));
             int columns = Math.max(1, (int) Math.floor((cardW - 44f - 28f) / (buttonW + 6f)));
@@ -382,27 +393,35 @@ public final class PVPUtilsViaFabricPlusScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean consumed) {
         if (event.button() != 0) return true;
-        float cardW = Math.max(620f, Math.min(900f, width * 0.84f));
-        float cardH = Math.max(370f, Math.min(height - 100f, height * 0.78f));
-        float cardX = (width - cardW) * 0.5f;
-        float cardY = 50f;
+        float pageX = MainUiScale.pageX((int) event.x(), this.width);
+        float pageY = MainUiScale.pageY((int) event.y(), this.height);
+        float cardW = cardW();
+        float cardH = cardH();
+        float cardX = cardX();
+        float cardY = cardY();
         float bottomY = cardY + cardH - 42f;
-        if (inside(event.x(), event.y(), cardX + 22f, bottomY, 92f, 26f)) {
+        float backW = bottomButtonW();
+        float backX = cardX + 22f;
+        float reportW = Math.min(88f, backW);
+        float reportX = cardX + cardW - 22f - reportW;
+        float serversX = reportX - 8f - backW;
+        float settingsX = serversX - 8f - backW;
+        if (inside(pageX, pageY, backX, bottomY, backW, 26f)) {
             playClick();
             onClose();
             return true;
         }
-        if (inside(event.x(), event.y(), cardX + cardW - 310f, bottomY, 92f, 26f)) {
+        if (inside(pageX, pageY, settingsX, bottomY, backW, 26f)) {
             playClick();
             ViaFabricPlusBridge.openSettings(this);
             return true;
         }
-        if (inside(event.x(), event.y(), cardX + cardW - 210f, bottomY, 92f, 26f)) {
+        if (inside(pageX, pageY, serversX, bottomY, backW, 26f)) {
             playClick();
             ViaFabricPlusBridge.openServerList(this);
             return true;
         }
-        if (inside(event.x(), event.y(), cardX + cardW - 110f, bottomY, 88f, 26f)) {
+        if (inside(pageX, pageY, reportX, bottomY, reportW, 26f)) {
             playClick();
             ViaFabricPlusBridge.openReportIssues(this);
             return true;
@@ -431,7 +450,7 @@ public final class PVPUtilsViaFabricPlusScreen extends Screen {
                 }
                 if (buttonY + 6f >= detailY + 34f
                         && buttonY - 14f <= detailY + detailH - 8f
-                        && inside(event.x(), event.y(), buttonX, buttonY - 14f, buttonW, 20f)) {
+                        && inside(pageX, pageY, buttonX, buttonY - 14f, buttonW, 20f)) {
                     ViaFabricPlusBridge.setTargetVersion(entry);
                     cachedTargetVersion = entry.name();
                     nextTargetRefreshAt = System.currentTimeMillis() + 250L;
@@ -440,7 +459,7 @@ public final class PVPUtilsViaFabricPlusScreen extends Screen {
                 }
                 buttonX += buttonW + 6f;
             }
-            if (inside(event.x(), event.y(), detailX, detailY, detailW, detailH)) {
+            if (inside(pageX, pageY, detailX, detailY, detailW, detailH)) {
                 return true;
             }
         }
@@ -449,7 +468,7 @@ public final class PVPUtilsViaFabricPlusScreen extends Screen {
             int row = i / columns;
             float x = gridX + column * (itemW + gapX);
             float y = gridY + row * (itemH + gapY) - scroll;
-            if (inside(event.x(), event.y(), x, y, itemW, itemH)) {
+            if (inside(pageX, pageY, x, y, itemW, itemH)) {
                 selectedGroup = i;
                 pressedGroup = i;
                 pressedGroupAt = System.currentTimeMillis();
@@ -502,6 +521,26 @@ public final class PVPUtilsViaFabricPlusScreen extends Screen {
             return texture.getFbo(device.directStateAccess(), minecraft.getMainRenderTarget().getDepthTexture());
         }
         return 0;
+    }
+
+    private float cardW() {
+        return Math.max(620f, Math.min(900f, width * 0.84f));
+    }
+
+    private float cardH() {
+        return Math.max(370f, Math.min(height - 100f, height * 0.78f));
+    }
+
+    private float cardX() {
+        return (width - cardW()) * 0.5f;
+    }
+
+    private float cardY() {
+        return 76f;
+    }
+
+    private float bottomButtonW() {
+        return Math.max(56f, Math.min(92f, (cardW() - 44f - 24f) / 4f));
     }
 
     private boolean inside(double mx, double my, float x, float y, float w, float h) {
