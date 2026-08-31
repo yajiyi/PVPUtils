@@ -1,5 +1,6 @@
 package com.pvp_utils.client.gui.clickgui.widget;
 
+import com.pvp_utils.client.gui.clickgui.theme.ClickGuiThemeColors;
 import com.pvp_utils.client.render.font.FontRenderer;
 import io.github.humbleui.skija.Canvas;
 import io.github.humbleui.skija.Paint;
@@ -19,9 +20,6 @@ public class SettingCycle extends SettingWidget {
     private String cachedLabel = "";
     private float cachedTextWidth = 0f;
 
-    private static final int COLOR_BG   = 0xFFF0F0F0;
-    private static final int COLOR_TEXT = 0xFF333333;
-
     public SettingCycle(List<String> options, Supplier<Integer> getter, Consumer<Integer> setter) {
         this.options = options;
         this.getter = getter;
@@ -39,9 +37,10 @@ public class SettingCycle extends SettingWidget {
             cachedLabel = options.get(index);
             cachedTextWidth = FontRenderer.measureTextWidth(cachedLabel, 12f);
         }
-        bgPaint.setColor(withAlpha(0xF0F0F0, alpha));
+        ClickGuiThemeColors tc = ClickGuiThemeColors.current();
+        bgPaint.setColor(withAlpha(tc.buttonBackground, alpha));
         canvas.drawRRect(RRect.makeXYWH(x, y, getWidth(), getHeight(), 6f), bgPaint);
-        FontRenderer.drawText(canvas, cachedLabel, x + (getWidth() - cachedTextWidth) / 2f, y + 16f, 12f, withAlpha(0x333333, alpha));
+        FontRenderer.drawText(canvas, cachedLabel, x + (getWidth() - cachedTextWidth) / 2f, y + 16f, 12f, withAlpha(tc.subModuleText, alpha));
     }
 
     @Override

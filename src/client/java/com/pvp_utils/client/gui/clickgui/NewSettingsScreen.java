@@ -4,6 +4,9 @@ import com.pvp_utils.Config;
 import com.pvp_utils.PVPUtils;
 import com.pvp_utils.client.Version;
 import com.pvp_utils.client.gui.clickgui.pages.*;
+import com.pvp_utils.client.gui.clickgui.theme.ClickGuiTheme;
+import com.pvp_utils.client.gui.clickgui.theme.ClickGuiThemeColors;
+import com.pvp_utils.client.gui.clickgui.theme.ClickGuiThemeManager;
 import com.pvp_utils.client.gui.clickgui.widget.SettingModule;
 import com.pvp_utils.client.gui.clickgui.widget.SettingTextBox;
 import com.pvp_utils.client.ResetManager;
@@ -14,6 +17,7 @@ import com.pvp_utils.client.render.skia.SkiaGlBackend;
 import com.pvp_utils.client.render.skia.SkiaScreen;
 import io.github.humbleui.skija.Canvas;
 import io.github.humbleui.skija.Paint;
+import io.github.humbleui.skija.PaintMode;
 import io.github.humbleui.types.RRect;
 import io.github.humbleui.types.Rect;
 import net.minecraft.client.gui.GuiGraphics;
@@ -73,8 +77,6 @@ public class NewSettingsScreen extends SkiaScreen {
     private float searchTextOffset = 0f;
     private float searchCursorTime = 0f;
     private long lastRenderMs = 0;
-    private float animatedClickGuiScale = -1f;
-    private float lastDelta = 0f;
 
     private float contentScrollOffset = 0f;
     private float targetScrollOffset = 0f;
@@ -85,6 +87,10 @@ public class NewSettingsScreen extends SkiaScreen {
     private static final float BASE_CARD_W = 740f;
     private static final float BASE_CARD_H = 500f;
     private static final float SCREEN_MARGIN = 24f;
+    private static final float THUMB_SIZE = 96f;
+    private static final float THUMB_GAP_X = 24f;
+    private static final float THUMB_ROW_GAP = 42f;
+    private static final int THUMB_COLS = 4;
     private final Paint cardPaint = new Paint().setAntiAlias(true);
     private final Paint sidebarPaint = new Paint().setAntiAlias(true);
     private final Paint dividerPaint = new Paint().setAntiAlias(true);
@@ -96,6 +102,8 @@ public class NewSettingsScreen extends SkiaScreen {
     private final Paint scrollbarThumbPaint = new Paint().setAntiAlias(true);
     private final Paint searchBgPaint = new Paint().setAntiAlias(true);
     private final Paint searchLinePaint = new Paint().setAntiAlias(true);
+    private final Paint thumbPaint = new Paint().setAntiAlias(true);
+    private final Paint previewBorderPaint = new Paint().setAntiAlias(true).setMode(PaintMode.STROKE).setStrokeWidth(1.2f);
     private final SkiaGlBackend glBackend = new SkiaGlBackend();
     private final float resetIconWidth = FontRenderer.measureTextWidth("\uE042", 13f, FontRenderer.MATERIAL_SYMBOLS);
     private String cachedResetText = "";
@@ -125,6 +133,11 @@ public class NewSettingsScreen extends SkiaScreen {
     private int diagnosticMainColor = 0;
     private int diagnosticMainStatus = 0;
     private int diagnosticReadStatus = 0;
+
+    // 主题预览模式：右侧内容区显示全部主题缩略图（左侧功能栏保持不变）
+    private boolean themePreviewMode = false;
+    private int themeHoveredCard = -1;
+    private final List<ClickGuiTheme> previewThemes = new ArrayList<>(ClickGuiThemeManager.themes());
 
     public NewSettingsScreen(Screen parent) {
         super(Component.literal("Settings"), parent);
@@ -165,12 +178,7 @@ public class NewSettingsScreen extends SkiaScreen {
         float fitY = Math.max(0.1f, (layoutHeight - SCREEN_MARGIN) / BASE_CARD_H);
         float fit = Math.min(1f, Math.min(fitX, fitY));
         float guiScale = minecraft == null ? 2f : Math.max(1f, (float) minecraft.getWindow().getGuiScale());
-        float[] scales = {0.75f, 1.0f, 1.25f};
-        float targetScale = scales[Math.max(0, Math.min(Config.clickGuiScale, scales.length - 1))];
-        if (animatedClickGuiScale < 0f) animatedClickGuiScale = targetScale;
-        animatedClickGuiScale += (targetScale - animatedClickGuiScale) * Math.min(1f, lastDelta * 12f);
-        if (Math.abs(animatedClickGuiScale - targetScale) < 0.001f) animatedClickGuiScale = targetScale;
-        return fit * 2f / guiScale * animatedClickGuiScale;
+        return fit * 2f / guiScale;
     }
 
     private float getVisualScale(int width, int height) {
@@ -360,7 +368,7 @@ public class NewSettingsScreen extends SkiaScreen {
         debugAnimatingModules = animating;
     }
 
-    private void drawDebugOverlay(Canvas canvas, float cardX, float cardY, float cardW, float alpha) {
+    private void drawDebugOverlay(Canvas canvas, float cardX, float cardY, float cardW, float alpha, ClickGuiThemeColors tc) {
         if (!Version.DEBUG) return;
         String line1 = String.format("ClickGUI %.2fms draw %.2fms update", debugLastDrawMs, debugLastUpdateMs);
         String line2 = String.format("modules %d visible %d expanded %d anim", debugVisibleModules, debugExpandedModules, debugAnimatingModules);
@@ -372,11 +380,11 @@ public class NewSettingsScreen extends SkiaScreen {
         float x = cardX + cardW - w - 14f;
         float y = cardY + 14f;
         Paint bg = new Paint().setAntiAlias(true);
-        bg.setColor(withAlpha(0xF7F7F8, alpha));
+        bg.setColor(withAlpha(tc.content, alpha));
         canvas.drawRRect(RRect.makeXYWH(x, y, w, h, 8f), bg);
-        FontRenderer.drawText(canvas, line1, x + padding, y + 13f, textSize, withAlpha(0x444444, alpha));
-        FontRenderer.drawText(canvas, line2, x + padding, y + 25f, textSize, withAlpha(0x666666, alpha));
-        FontRenderer.drawText(canvas, line3, x + padding, y + 37f, textSize, withAlpha(0x666666, alpha));
+        FontRenderer.drawText(canvas, line1, x + padding, y + 13f, textSize, withAlpha(tc.mutedText, alpha));
+        FontRenderer.drawText(canvas, line2, x + padding, y + 25f, textSize, withAlpha(tc.secondaryText, alpha));
+        FontRenderer.drawText(canvas, line3, x + padding, y + 37f, textSize, withAlpha(tc.secondaryText, alpha));
     }
 
     private int computeHoverSignature(double mouseX, double mouseY) {
@@ -431,7 +439,6 @@ public class NewSettingsScreen extends SkiaScreen {
         long now = System.currentTimeMillis();
         float dt = lastRenderMs == 0 ? 0.016f : Math.min((now - lastRenderMs) / 1000f, 0.033f);
         lastRenderMs = now;
-        lastDelta = dt;
 
         if (closing) {
             openProgress = clamp01(openProgress - dt / OPEN_DURATION);
@@ -498,49 +505,50 @@ public class NewSettingsScreen extends SkiaScreen {
         float alpha = animT;
         float cx = width / 2f;
         float cy = height / 2f;
+        ClickGuiThemeColors tc = ClickGuiThemeColors.current();
 
         canvas.save();
         canvas.translate(cx, cy);
         canvas.scale(visualScale, visualScale);
         canvas.translate(-layoutWidth * 0.5f, -layoutHeight * 0.5f);
 
-        cardPaint.setColor(withAlpha(0xF5F5F7, alpha));
+        cardPaint.setColor(withAlpha(tc.window, alpha));
         canvas.drawRRect(RRect.makeXYWH(cardX, cardY, cardW, cardH, 16f), cardPaint);
 
-        sidebarPaint.setColor(withAlpha(0xFFFFFF, alpha));
+        sidebarPaint.setColor(withAlpha(tc.sidebar, alpha));
         canvas.save();
         canvas.clipRRect(RRect.makeXYWH(cardX, cardY, sidebarW, cardH, 16f));
         canvas.drawRect(Rect.makeXYWH(cardX, cardY, sidebarW, cardH), sidebarPaint);
         canvas.restore();
 
-        dividerPaint.setColor(withAlpha(0xEEEEEE, alpha));
+        dividerPaint.setColor(withAlpha(tc.border, alpha));
         canvas.drawRect(Rect.makeXYWH(cardX + sidebarW, cardY + 14f, 1f, cardH - 28f), dividerPaint);
 
-        FontRenderer.drawText(canvas, "PVPUtils", cardX + 18f, cardY + 38f, 16f, withAlpha(0x111111, alpha));
-        drawDebugOverlay(canvas, cardX, cardY, cardW, alpha);
-        FontRenderer.drawText(canvas, UiText.t("在下方调整设置...", "Adjust the settings below..."), cardX + 18f, cardY + 54f, 10f, withAlpha(0xAAAAAA, alpha));
-        drawSearchBox(canvas, searchX, searchY, searchW, searchH, alpha, dt);
+        FontRenderer.drawText(canvas, "PVPUtils", cardX + 18f, cardY + 38f, 16f, withAlpha(tc.primaryText, alpha));
+        drawDebugOverlay(canvas, cardX, cardY, cardW, alpha, tc);
+        FontRenderer.drawText(canvas, UiText.t("在下方调整设置...", "Adjust the settings below..."), cardX + 18f, cardY + 54f, 10f, withAlpha(tc.secondaryText, alpha));
+        drawSearchBox(canvas, searchX, searchY, searchW, searchH, alpha, dt, tc);
 
-        indicatorPaint.setColor(withAlpha(0xE8EEFF, alpha));
+        indicatorPaint.setColor(withAlpha(tc.indicator, alpha));
         canvas.drawRRect(RRect.makeXYWH(cardX + 12f, indicatorY, tabW, tabH, 8f), indicatorPaint);
 
         for (int i = 0; i < TAB_KEYS_ZH.length; i++) {
             float tabY = tabStartY + i * (tabH + tabGap);
             if (tabHoverAlpha[i] > 0.01f) {
-                hoverPaint.setColor(withAlpha(0xF3F4FF, alpha * tabHoverAlpha[i]));
+                hoverPaint.setColor(withAlpha(tc.hoverBackground, alpha * tabHoverAlpha[i]));
                 canvas.drawRRect(RRect.makeXYWH(cardX + 12f, tabY, tabW, tabH, 8f), hoverPaint);
             }
             boolean active = i == selectedTab;
-            int iconColor = active ? withAlpha(0x2F54EB, alpha) : withAlpha(0x888888, alpha);
-            int textColor = active ? withAlpha(0x2F54EB, alpha) : withAlpha(0x333333, alpha);
+            int iconColor = active ? withAlpha(tc.accent, alpha) : withAlpha(tc.inactiveIcon, alpha);
+            int textColor = active ? withAlpha(tc.accent, alpha) : withAlpha(tc.inactiveText, alpha);
             FontRenderer.drawText(canvas, TAB_ICONS[i], cardX + 18f, tabY + tabH / 2f + 6f, 13f, iconColor, TAB_ICON_FONTS[i]);
             FontRenderer.drawText(canvas, UiText.t(TAB_KEYS_ZH[i], TAB_KEYS_EN[i]), cardX + 38f, tabY + tabH / 2f + 6f, 13f, textColor);
         }
 
-        int closeBgColor = lerpColor(0xF0F0F0, 0xFFE5E5, closeHoverAlpha);
-        int closeTextColor = lerpColor(0x666666, 0xCC2222, closeHoverAlpha);
-        int resetBgColor = lerpColor(0xF0F0F0, 0xFFE0E0, resetHoverAlpha);
-        int resetTextColor = lerpColor(0x666666, 0xCC1111, resetHoverAlpha);
+        int closeBgColor = lerpColor(tc.buttonBackground, tc.dangerHoverBackground, closeHoverAlpha);
+        int closeTextColor = lerpColor(tc.buttonText, tc.dangerHoverText, closeHoverAlpha);
+        int resetBgColor = lerpColor(tc.buttonBackground, tc.dangerHoverBackground, resetHoverAlpha);
+        int resetTextColor = lerpColor(tc.buttonText, tc.dangerHoverText, resetHoverAlpha);
         resetBgPaint.setColor(withAlpha(resetBgColor, alpha));
         canvas.drawRRect(RRect.makeXYWH(closeX, resetY, tabW, resetH, 8f), resetBgPaint);
         String resetText = resetConfirm ? UiText.t("再次点击以确认", "Click Again to Confirm") : UiText.t("重置所有设置", "Reset All Settings");
@@ -563,8 +571,13 @@ public class NewSettingsScreen extends SkiaScreen {
         }
         FontRenderer.drawText(canvas, closeText, closeX + (tabW - cachedCloseTextWidth) / 2f, closeY + 22f, 12f, withAlpha(closeTextColor, alpha));
 
-        FontRenderer.drawText(canvas, page.getTitle(), contentX + 18f, contentY + 26f, 18f, withAlpha(0x111111, alpha));
-        FontRenderer.drawText(canvas, page.getSubtitle(), contentX + 18f, contentY + 42f, 10f, withAlpha(0xAAAAAA, alpha));
+        if (themePreviewMode) {
+            FontRenderer.drawText(canvas, UiText.t("面板主题", "Panel Theme"), contentX + 18f, contentY + 26f, 18f, withAlpha(tc.primaryText, alpha));
+            FontRenderer.drawText(canvas, UiText.t("点击缩略图切换面板配色", "Click a thumbnail to switch the panel theme"), contentX + 18f, contentY + 42f, 10f, withAlpha(tc.secondaryText, alpha));
+        } else {
+            FontRenderer.drawText(canvas, page.getTitle(), contentX + 18f, contentY + 26f, 18f, withAlpha(tc.primaryText, alpha));
+            FontRenderer.drawText(canvas, page.getSubtitle(), contentX + 18f, contentY + 42f, 10f, withAlpha(tc.secondaryText, alpha));
+        }
 
         float clipTop = contentY + 54f;
         float clipBottom = contentY + contentH;
@@ -572,9 +585,13 @@ public class NewSettingsScreen extends SkiaScreen {
         canvas.save();
         canvas.clipRect(contentClip);
 
-        float moduleStartY = contentY + 54f;
-        page.draw(canvas, contentX + 10f, moduleStartY, contentW - 40f, contentH - 54f, alpha, contentScrollOffset, layoutMouseX, layoutMouseY);
-        drawScrollbar(canvas, page, contentX, contentY, contentW, contentH, alpha);
+        if (themePreviewMode) {
+            drawThemePreviewGrid(canvas, contentX, contentY, contentW, alpha, layoutMouseX, layoutMouseY);
+        } else {
+            float moduleStartY = contentY + 54f;
+            page.draw(canvas, contentX + 10f, moduleStartY, contentW - 40f, contentH - 54f, alpha, contentScrollOffset, layoutMouseX, layoutMouseY);
+            drawScrollbar(canvas, page, contentX, contentY, contentW, contentH, alpha, tc);
+        }
 
         canvas.restore();
 
@@ -585,7 +602,76 @@ public class NewSettingsScreen extends SkiaScreen {
         }
     }
 
-    private void drawScrollbar(Canvas canvas, BasePage page, float contentX, float contentY, float contentW, float contentH, float alpha) {
+    // —— 主题预览网格 ——
+
+    private float previewGridWidth() {
+        return THUMB_COLS * THUMB_SIZE + (THUMB_COLS - 1) * THUMB_GAP_X;
+    }
+
+    private float previewThumbX(float gridX, int index) {
+        int row = index / THUMB_COLS;
+        int rows = (previewThemes.size() + THUMB_COLS - 1) / THUMB_COLS;
+        int count = THUMB_COLS;
+        if (row == rows - 1 && previewThemes.size() % THUMB_COLS != 0) {
+            count = previewThemes.size() % THUMB_COLS;
+        }
+        float rowW = count * THUMB_SIZE + (count - 1) * THUMB_GAP_X;
+        return gridX + (previewGridWidth() - rowW) / 2f + (index % THUMB_COLS) * (THUMB_SIZE + THUMB_GAP_X);
+    }
+
+    private float previewThumbY(float gridY, int index) {
+        return gridY + (index / THUMB_COLS) * (THUMB_SIZE + THUMB_ROW_GAP);
+    }
+
+    private void drawThemePreviewGrid(Canvas canvas, float contentX, float contentY, float contentW, float alpha, float mouseX, float mouseY) {
+        float gridX = contentX + (contentW - previewGridWidth()) / 2f;
+        float gridY = contentY + 54f + 30f;
+        themeHoveredCard = -1;
+        String currentId = ClickGuiThemeManager.currentId();
+        for (int i = 0; i < previewThemes.size(); i++) {
+            ClickGuiTheme theme = previewThemes.get(i);
+            float cx = previewThumbX(gridX, i);
+            float cy = previewThumbY(gridY, i);
+            if (mouseX >= cx - 6f && mouseX <= cx + THUMB_SIZE + 6f && mouseY >= cy - 6f && mouseY <= cy + THUMB_SIZE + 26f) {
+                themeHoveredCard = i;
+            }
+            drawPreviewThemeCard(canvas, cx, cy, theme, theme.id().equals(currentId), themeHoveredCard == i, alpha);
+        }
+    }
+
+    private void drawPreviewThemeCard(Canvas canvas, float cx, float cy, ClickGuiTheme theme, boolean selected, boolean hovered, float alpha) {
+        ClickGuiThemeColors c = ClickGuiThemeColors.of(theme);
+        thumbPaint.setColor(withAlpha(c.window, alpha));
+        canvas.drawRRect(RRect.makeXYWH(cx, cy, THUMB_SIZE, THUMB_SIZE, 14f), thumbPaint);
+        // 迷你面板：左侧边栏竖条
+        thumbPaint.setColor(withAlpha(c.sidebar, alpha));
+        canvas.drawRRect(RRect.makeXYWH(cx + 12f, cy + 14f, 16f, 68f, 8f), thumbPaint);
+        // 强调色指示条
+        thumbPaint.setColor(withAlpha(c.accent, alpha));
+        canvas.drawRRect(RRect.makeXYWH(cx + 14f, cy + 16f, 4f, 14f, 2f), thumbPaint);
+        // 模块色块
+        thumbPaint.setColor(withAlpha(c.module, alpha));
+        canvas.drawRRect(RRect.makeXYWH(cx + 36f, cy + 18f, 44f, 18f, 6f), thumbPaint);
+        canvas.drawRRect(RRect.makeXYWH(cx + 36f, cy + 42f, 30f, 18f, 6f), thumbPaint);
+        // 次级文字色条
+        thumbPaint.setColor(withAlpha(c.secondaryText, alpha * 0.55f));
+        canvas.drawRRect(RRect.makeXYWH(cx + 36f, cy + 66f, 36f, 5f, 2.5f), thumbPaint);
+        // 边框
+        int borderColor = selected ? c.accent : (hovered ? c.secondaryText : c.border);
+        previewBorderPaint.setStrokeWidth(selected ? 2f : 1.2f);
+        previewBorderPaint.setColor(withAlpha(borderColor, alpha));
+        canvas.drawRRect(RRect.makeXYWH(cx, cy, THUMB_SIZE, THUMB_SIZE, 14f), previewBorderPaint);
+        // 选中勾选
+        if (selected) {
+            FontRenderer.drawText(canvas, "\uE5CA", cx + THUMB_SIZE - 24f, cy + 20f, 13f, withAlpha(c.accent, alpha), FontRenderer.MATERIAL_SYMBOLS);
+        }
+        // 主题名
+        String name = theme.displayName();
+        float nw = FontRenderer.measureTextWidth(name, 12f);
+        FontRenderer.drawText(canvas, name, cx + (THUMB_SIZE - nw) / 2f, cy + THUMB_SIZE + 17f, 12f, withAlpha(c.primaryText, alpha));
+    }
+
+    private void drawScrollbar(Canvas canvas, BasePage page, float contentX, float contentY, float contentW, float contentH, float alpha, ClickGuiThemeColors tc) {
         updateScrollCache(page, contentH);
         if (cachedContentTotalHeight <= cachedScrollAreaHeight) return;
 
@@ -598,18 +684,18 @@ public class NewSettingsScreen extends SkiaScreen {
         float thumbTop = trackTop + (trackH - thumbH) * progress;
         thumbTop = Math.min(thumbTop, trackTop + trackH - thumbH);
 
-        scrollbarTrackPaint.setColor(withAlpha(0xE0E0E0, alpha * 0.5f));
+        scrollbarTrackPaint.setColor(withAlpha(tc.scrollbarTrack, alpha * 0.5f));
         canvas.drawRRect(RRect.makeXYWH(trackX, trackTop, 4f, trackH, 2f), scrollbarTrackPaint);
-        scrollbarThumbPaint.setColor(withAlpha(0xBBBBBB, alpha));
+        scrollbarThumbPaint.setColor(withAlpha(tc.scrollbarThumb, alpha));
         canvas.drawRRect(RRect.makeXYWH(trackX, thumbTop, 4f, thumbH, 2f), scrollbarThumbPaint);
     }
 
-    private void drawSearchBox(Canvas canvas, float x, float y, float width, float height, float alpha, float dt) {
-        int background = lerpColor(0xF1F2F5, 0xE9EEFF, searchFocusAlpha);
+    private void drawSearchBox(Canvas canvas, float x, float y, float width, float height, float alpha, float dt, ClickGuiThemeColors tc) {
+        int background = lerpColor(tc.searchBackground, tc.searchFocusedBackground, searchFocusAlpha);
         searchBgPaint.setColor(withAlpha(background, alpha));
         canvas.drawRRect(RRect.makeXYWH(x, y, width, height, 7f), searchBgPaint);
 
-        FontRenderer.drawText(canvas, "\uE8B6", x + 9f, y + 19f, 12f, withAlpha(0x7D8493, alpha), FontRenderer.MATERIAL_SYMBOLS);
+        FontRenderer.drawText(canvas, "\uE8B6", x + 9f, y + 19f, 12f, withAlpha(tc.searchIcon, alpha), FontRenderer.MATERIAL_SYMBOLS);
         float textX = x + 28f;
         float textW = Math.max(1f, width - 36f);
         boolean empty = searchText.isEmpty();
@@ -621,17 +707,17 @@ public class NewSettingsScreen extends SkiaScreen {
         canvas.save();
         canvas.clipRect(Rect.makeXYWH(textX, y + 2f, textW, height - 4f));
         FontRenderer.drawText(canvas, display, textX - (empty ? 0f : searchTextOffset), y + 18.5f, 10f,
-                withAlpha(empty ? 0x9BA1AE : 0x343842, alpha));
+                withAlpha(empty ? tc.searchTextPlaceholder : tc.searchText, alpha));
         if (searchFocused) {
             float cursorPulse = 0.35f + 0.65f * (0.5f + 0.5f * (float) Math.sin(searchCursorTime * 6f));
             float cursorX = textX + Math.min(textW - 1f, Math.max(0f, realTextWidth - searchTextOffset));
-            searchLinePaint.setColor(withAlpha(0x5A73E8, alpha * cursorPulse));
+            searchLinePaint.setColor(withAlpha(tc.searchCursor, alpha * cursorPulse));
             canvas.drawRect(Rect.makeXYWH(cursorX, y + 7f, 1f, 14f), searchLinePaint);
         }
         canvas.restore();
 
         float linePulse = 0.3f + 0.7f * (0.5f + 0.5f * (float) Math.sin(searchCursorTime * 6f));
-        searchLinePaint.setColor(withAlpha(0x5A73E8, alpha * searchFocusAlpha * linePulse));
+        searchLinePaint.setColor(withAlpha(tc.searchCursor, alpha * searchFocusAlpha * linePulse));
         canvas.drawRect(Rect.makeXYWH(x + 8f, y + height - 2f, width - 16f, 1f), searchLinePaint);
     }
 
@@ -666,6 +752,15 @@ public class NewSettingsScreen extends SkiaScreen {
         searchText = "";
         searchTextOffset = 0f;
         applySearch();
+    }
+
+    /** 打开面板主题预览模式：右侧内容区切换为主题缩略图网格。 */
+    public void openThemePreview() {
+        clearSearch();
+        themePreviewMode = true;
+        targetScrollOffset = 0f;
+        contentScrollOffset = 0f;
+        invalidateScrollLayout();
     }
 
     private void setSearchFocused(boolean focused) {
@@ -809,6 +904,7 @@ public class NewSettingsScreen extends SkiaScreen {
 
         if (button == 0 && mx >= searchX && mx <= searchX + searchW && my >= searchY && my <= searchY + searchH) {
             SettingTextBox.clearFocus();
+            themePreviewMode = false;
             setSearchFocused(true);
             searchCursorTime = 0f;
             invalidateScrollLayout();
@@ -822,6 +918,7 @@ public class NewSettingsScreen extends SkiaScreen {
             if (mx >= cardX + 12f && mx <= cardX + 12f + tabW && my >= ty && my <= ty + tabH) {
                 if (button == 0) {
                     clearSearch();
+                    themePreviewMode = false;
                     selectedTab = i;
                     targetScrollOffset = 0f;
                     contentScrollOffset = 0f;
@@ -839,6 +936,7 @@ public class NewSettingsScreen extends SkiaScreen {
 
         if (button == 0 && mx >= closeX && mx <= closeX + tabW && my >= resetY && my <= resetY + resetH) {
             if (resetConfirm) {
+                themePreviewMode = false;
                 ResetManager.resetAll();
                 resetConfirm = false;
                 pages.set(selectedTab, switch (selectedTab) {
@@ -860,6 +958,23 @@ public class NewSettingsScreen extends SkiaScreen {
         resetConfirm = false;
 
         if (mx >= contentX && mx <= contentX + contentW && my >= contentY && my <= contentY + contentH) {
+            if (themePreviewMode) {
+                float gridX = contentX + (contentW - previewGridWidth()) / 2f;
+                float gridY = contentY + 54f + 30f;
+                for (int i = 0; i < previewThemes.size(); i++) {
+                    float cx = previewThumbX(gridX, i);
+                    float cy = previewThumbY(gridY, i);
+                    if (mx >= cx - 6f && mx <= cx + THUMB_SIZE + 6f && my >= cy - 6f && my <= cy + THUMB_SIZE + 26f) {
+                        ClickGuiTheme theme = previewThemes.get(i);
+                        if (!theme.id().equals(ClickGuiThemeManager.currentId())) {
+                            ClickGuiThemeManager.selectAndSave(theme.id());
+                        }
+                        invalidateScrollLayout();
+                        return true;
+                    }
+                }
+                return true;
+            }
             if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && hasScrollbar(page, contentH) && isInScrollbar(mx, my, contentX, contentY, contentW, contentH)) {
                 draggingScrollbar = true;
                 float thumbTop = scrollbarThumbTop(page, contentY, contentH);
@@ -919,6 +1034,7 @@ public class NewSettingsScreen extends SkiaScreen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double hScroll, double vScroll) {
+        if (themePreviewMode) return false;
         float visualScale = getVisualScale(this.width, this.height);
         float layoutMx = toLayoutX(mx, this.width, visualScale);
         float layoutMy = toLayoutY(my, this.height, visualScale);
@@ -928,7 +1044,7 @@ public class NewSettingsScreen extends SkiaScreen {
         if (layoutMx >= contentX && layoutMx <= contentX + contentW && layoutMy >= contentY && layoutMy <= contentY + contentH) {
             BasePage page = activePage();
             updateScrollCache(page, contentH);
-            targetScrollOffset = Math.max(0f, Math.min(cachedScrollMax, targetScrollOffset + (float)(-vScroll * 16f * Math.max(0.2f, Config.clickGuiScrollSpeed))));
+            targetScrollOffset = Math.max(0f, Math.min(cachedScrollMax, targetScrollOffset + (float)(-vScroll * 16f)));
             invalidateScrollLayout();
             return true;
         }

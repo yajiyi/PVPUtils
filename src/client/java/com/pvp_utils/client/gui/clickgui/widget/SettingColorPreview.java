@@ -1,5 +1,6 @@
 package com.pvp_utils.client.gui.clickgui.widget;
 
+import com.pvp_utils.client.gui.clickgui.theme.ClickGuiThemeColors;
 import io.github.humbleui.skija.Canvas;
 import io.github.humbleui.skija.Paint;
 import io.github.humbleui.skija.PaintMode;
@@ -36,7 +37,7 @@ public class SettingColorPreview extends SettingWidget {
     public void draw(Canvas canvas, float x, float y, float alpha) {
         int color = colorSupplier.getAsInt();
         fillPaint.setColor(withAlpha(color, alpha));
-        borderPaint.setColor(withAlpha(0xFF111827, alpha * 0.24f));
+        borderPaint.setColor(withAlpha(ClickGuiThemeColors.current().border, alpha * 0.24f));
         RRect rect = RRect.makeXYWH(x, y, getWidth(), getHeight(), 8f);
         if (splitSupplier.getAsBoolean()) {
             int secondColor = secondColorSupplier.getAsInt();

@@ -1,5 +1,6 @@
 package com.pvp_utils.client.gui.clickgui.widget;
 
+import com.pvp_utils.client.gui.clickgui.theme.ClickGuiThemeColors;
 import io.github.humbleui.skija.Canvas;
 import io.github.humbleui.skija.Paint;
 import io.github.humbleui.types.RRect;
@@ -16,10 +17,6 @@ public class SettingToggle extends SettingWidget {
     private float lastDrawX = 0f;
     private final Paint trackPaint = new Paint().setAntiAlias(true);
     private final Paint thumbPaint = new Paint().setAntiAlias(true);
-
-    private static final int COLOR_TRACK_ON  = 0xFF2F54EB;
-    private static final int COLOR_TRACK_OFF = 0xFFCCCCCC;
-    private static final int COLOR_THUMB     = 0xFFFFFFFF;
 
     public SettingToggle(Supplier<Boolean> getter, Consumer<Boolean> setter) {
         this.getter = getter;
@@ -47,10 +44,10 @@ public class SettingToggle extends SettingWidget {
         float targetThumbX = on ? x + 22f : x + 2f;
         thumbX += (targetThumbX - thumbX) * 0.2f;
 
-        int trackColor = lerpColor(COLOR_TRACK_OFF, COLOR_TRACK_ON, colorT);
+        int trackColor = lerpColor(ClickGuiThemeColors.current().scrollbarTrack, ClickGuiThemeColors.current().accent, colorT);
 
         trackPaint.setColor(withAlpha(trackColor, alpha));
-        thumbPaint.setColor(withAlpha(COLOR_THUMB, alpha));
+        thumbPaint.setColor(withAlpha(0xFFFFFF, alpha));
         canvas.drawRRect(RRect.makeXYWH(x, y, 44f, 24f, 12f), trackPaint);
         canvas.drawRRect(RRect.makeXYWH(thumbX, y + 2f, 20f, 20f, 10f), thumbPaint);
     }

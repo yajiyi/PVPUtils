@@ -2,6 +2,7 @@ package com.pvp_utils.client.gui.clickgui.widget;
 
 import com.pvp_utils.client.ModuleKeybindManager;
 import com.pvp_utils.client.gui.clickgui.UiText;
+import com.pvp_utils.client.gui.clickgui.theme.ClickGuiThemeColors;
 import com.pvp_utils.client.render.font.FontRenderer;
 import io.github.humbleui.skija.Canvas;
 import io.github.humbleui.skija.Paint;
@@ -179,9 +180,13 @@ public class SettingModule {
         boolean capturing = ModuleKeybindManager.isCapturing(id);
         keybindHover += ((hovered ? 1f : 0f) - keybindHover) * 0.2f;
         keybindRed += ((bound && hovered && !capturing && !ModuleKeybindManager.ACTION_CLICK_GUI.equals(id) ? 1f : 0f) - keybindRed) * 0.2f;
-        int hoverColor = lerpColor(0xFF777777, 0xFF949494, keybindHover);
+        ClickGuiThemeColors tc = ClickGuiThemeColors.current();
+        int baseGray = tc.dark ? 0x777777 : 0x555555;
+        int hoverGray = tc.dark ? 0x949494 : 0x777777;
+        int unbindRed = tc.dark ? 0xE14D4D : 0xCC3333;
+        int hoverColor = lerpColor(baseGray, hoverGray, keybindHover);
         float buttonAlpha = alpha * (0.34f + keybindHover * 0.18f + keybindRed * 0.32f);
-        keybindPaint.setColor(withAlpha(lerpColor(hoverColor, 0xFFE14D4D, keybindRed), buttonAlpha));
+        keybindPaint.setColor(withAlpha(lerpColor(hoverColor, unbindRed, keybindRed), buttonAlpha));
         canvas.drawRRect(RRect.makeXYWH(x, y, keybindWidth, KEYBIND_H, 5f), keybindPaint);
         if (capturing) {
             String text = UiText.t("按下任意键...", "Press any key...");
@@ -216,10 +221,11 @@ public class SettingModule {
     }
 
     private void drawStaticContent(Canvas canvas, float x, float y, float contentW, float alpha, float viewportTop, float viewportBottom, float progress) {
-        modulePaint.setColor(withAlpha(0xFFFFFF, alpha));
+        ClickGuiThemeColors tc = ClickGuiThemeColors.current();
+        modulePaint.setColor(withAlpha(tc.module, alpha));
         canvas.drawRRect(RRect.makeXYWH(x, y, contentW, MODULE_H - 8f, 10f), modulePaint);
-        FontRenderer.drawText(canvas, title, x + PAD_X, y + 22f, 13f, withAlpha(0x111111, alpha));
-        FontRenderer.drawText(canvas, subtitle, x + PAD_X, y + 38f, 10f, withAlpha(0xAAAAAA, alpha));
+        FontRenderer.drawText(canvas, title, x + PAD_X, y + 22f, 13f, withAlpha(tc.primaryText, alpha));
+        FontRenderer.drawText(canvas, subtitle, x + PAD_X, y + 38f, 10f, withAlpha(tc.secondaryText, alpha));
         if (progress > 0.01f) {
             float sy = y + MODULE_H;
             for (SubEntry sub : subEntries) {
@@ -227,13 +233,13 @@ public class SettingModule {
                 float subBottom = sy + SUB_H - 6f;
                 if (subBottom > viewportTop && sy < viewportBottom) {
                     float subAlpha = alpha * progress;
-                    subPaint.setColor(withAlpha(0xF8F8FF, subAlpha));
+                    subPaint.setColor(withAlpha(tc.subModule, subAlpha));
                     canvas.drawRRect(RRect.makeXYWH(x + 8f, sy, contentW - 8f, SUB_H - 6f, 8f), subPaint);
                     if (sub.subtitle == null || sub.subtitle.isEmpty()) {
-                        FontRenderer.drawText(canvas, sub.title, x + PAD_X + 8f, sy + (SUB_H - 6f) / 2f + 4.5f, 12f, withAlpha(0x333333, subAlpha));
+                        FontRenderer.drawText(canvas, sub.title, x + PAD_X + 8f, sy + (SUB_H - 6f) / 2f + 4.5f, 12f, withAlpha(tc.subModuleText, subAlpha));
                     } else {
-                        FontRenderer.drawText(canvas, sub.title, x + PAD_X + 8f, sy + 16f, 12f, withAlpha(0x333333, subAlpha));
-                        FontRenderer.drawText(canvas, sub.subtitle, x + PAD_X + 8f, sy + 30f, 10f, withAlpha(0xAAAAAA, subAlpha));
+                        FontRenderer.drawText(canvas, sub.title, x + PAD_X + 8f, sy + 16f, 12f, withAlpha(tc.subModuleText, subAlpha));
+                        FontRenderer.drawText(canvas, sub.subtitle, x + PAD_X + 8f, sy + 30f, 10f, withAlpha(tc.secondaryText, subAlpha));
                     }
                 }
                 sy += SUB_H;
@@ -242,7 +248,7 @@ public class SettingModule {
         if (hasVisibleSubEntries()) {
             String arrow = progress > 0.5f ? ARROW_EXPANDED : ARROW_COLLAPSED;
             float aw = FontRenderer.measureTextWidth(arrow, 12f, FontRenderer.MATERIAL_SYMBOLS);
-            FontRenderer.drawText(canvas, arrow, x + contentW - 5f - aw, y + (MODULE_H - 8f) / 2f + 5.5f, 12f, withAlpha(0xBBBBBB, alpha), FontRenderer.MATERIAL_SYMBOLS);
+            FontRenderer.drawText(canvas, arrow, x + contentW - 5f - aw, y + (MODULE_H - 8f) / 2f + 5.5f, 12f, withAlpha(tc.mutedText, alpha), FontRenderer.MATERIAL_SYMBOLS);
         }
     }
 

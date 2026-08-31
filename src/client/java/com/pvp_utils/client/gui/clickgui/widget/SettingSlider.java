@@ -1,5 +1,6 @@
 package com.pvp_utils.client.gui.clickgui.widget;
 
+import com.pvp_utils.client.gui.clickgui.theme.ClickGuiThemeColors;
 import com.pvp_utils.client.render.font.FontRenderer;
 import io.github.humbleui.skija.Canvas;
 import io.github.humbleui.skija.Paint;
@@ -23,11 +24,6 @@ public class SettingSlider extends SettingWidget {
     private final Paint fillPaint = new Paint().setAntiAlias(true);
     private final Paint thumbPaint = new Paint().setAntiAlias(true);
 
-    private static final int COLOR_TRACK    = 0xFFE0E0E0;
-    private static final int COLOR_FILL     = 0xFF2F54EB;
-    private static final int COLOR_THUMB    = 0xFFFFFFFF;
-    private static final int COLOR_TEXT     = 0xFF888888;
-
     public SettingSlider(double min, double max, String format, Supplier<Double> getter, Consumer<Double> setter) {
         this.min = min;
         this.max = max;
@@ -44,6 +40,7 @@ public class SettingSlider extends SettingWidget {
 
     @Override
     public void draw(Canvas canvas, float x, float y, float alpha) {
+        ClickGuiThemeColors tc = ClickGuiThemeColors.current();
         double value = getter.get();
         if (Double.compare(value, cachedValue) != 0) {
             cachedValue = value;
@@ -52,16 +49,16 @@ public class SettingSlider extends SettingWidget {
         }
         String val = cachedText;
         float lw = cachedTextWidth;
-        FontRenderer.drawText(canvas, val, x + LABEL_W - lw, y + 14f, 11f, withAlpha(0x888888, alpha));
+        FontRenderer.drawText(canvas, val, x + LABEL_W - lw, y + 14f, 11f, withAlpha(tc.mutedText, alpha));
 
         float tx = x + LABEL_W + 8f;
         float t = (float)((value - min) / (max - min));
         float trackY = y + 9f;
         float thumbX = tx + t * TRACK_W;
 
-        trackPaint.setColor(withAlpha(0xE0E0E0, alpha));
+        trackPaint.setColor(withAlpha(tc.scrollbarTrack, alpha));
         canvas.drawRRect(RRect.makeXYWH(tx, trackY, TRACK_W, 4f, 2f), trackPaint);
-        fillPaint.setColor(withAlpha(0x2F54EB, alpha));
+        fillPaint.setColor(withAlpha(tc.accent, alpha));
         canvas.drawRRect(RRect.makeXYWH(tx, trackY, t * TRACK_W, 4f, 2f), fillPaint);
         thumbPaint.setColor(withAlpha(0xFFFFFF, alpha));
         canvas.drawRRect(RRect.makeXYWH(thumbX - 8f, y + 2f, 16f, 16f, 8f), thumbPaint);

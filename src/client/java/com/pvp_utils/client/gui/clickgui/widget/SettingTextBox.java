@@ -1,6 +1,7 @@
 package com.pvp_utils.client.gui.clickgui.widget;
 
 import com.pvp_utils.client.gui.clickgui.UiText;
+import com.pvp_utils.client.gui.clickgui.theme.ClickGuiThemeColors;
 import com.pvp_utils.client.modules.impl.Optimize.InputMethodFix.InputMethodFix;
 import com.pvp_utils.client.render.font.FontRenderer;
 import io.github.humbleui.skija.Canvas;
@@ -45,7 +46,8 @@ public class SettingTextBox extends SettingWidget {
         boolean active = focused == this;
         focusAlpha += ((active ? 1f : 0f) - focusAlpha) * 0.22f;
 
-        int background = lerpColor(0xF1F2F5, 0xE9EEFF, focusAlpha);
+        ClickGuiThemeColors tc = ClickGuiThemeColors.current();
+        int background = lerpColor(tc.searchBackground, tc.searchFocusedBackground, focusAlpha);
         bgPaint.setColor(withAlpha(background, alpha));
         canvas.drawRRect(RRect.makeXYWH(x, y, getWidth(), getHeight(), 7f), bgPaint);
 
@@ -68,22 +70,22 @@ public class SettingTextBox extends SettingWidget {
             if (selectionStart != selectionEnd) {
                 float selectionX = textX + FontRenderer.measureTextWidth(text.substring(0, selectionStart), 10f) - textOffset;
                 float selectionW = FontRenderer.measureTextWidth(text.substring(selectionStart, selectionEnd), 10f);
-                selectionPaint.setColor(withAlpha(0xB9C8FF, alpha));
+                selectionPaint.setColor(withAlpha(tc.accent, alpha * 0.72f));
                 canvas.drawRect(Rect.makeXYWH(selectionX, y + 4f, selectionW, 16f), selectionPaint);
             }
         }
         FontRenderer.drawText(canvas, display, textX - (empty ? 0f : textOffset), y + 15.5f, 10f,
-                withAlpha(empty ? 0x9BA1AE : 0x343842, alpha));
+                withAlpha(empty ? tc.searchTextPlaceholder : tc.searchText, alpha));
         if (active) {
             float cursorPulse = 0.35f + 0.65f * (0.5f + 0.5f * (float) Math.sin(cursorTime * 6f));
             float cursorX = textX + Math.min(textW - 1f, Math.max(0f, cursorTextW - textOffset));
-            cursorPaint.setColor(withAlpha(0xFF5A73E8, alpha * cursorPulse));
+            cursorPaint.setColor(withAlpha(tc.searchCursor, alpha * cursorPulse));
             canvas.drawRect(Rect.makeXYWH(cursorX, y + 5f, 1f, 14f), cursorPaint);
         }
         canvas.restore();
 
         float linePulse = 0.3f + 0.7f * (0.5f + 0.5f * (float) Math.sin(cursorTime * 6f));
-        linePaint.setColor(withAlpha(0x5A73E8, alpha * focusAlpha * linePulse));
+        linePaint.setColor(withAlpha(tc.searchCursor, alpha * focusAlpha * linePulse));
         canvas.drawRect(Rect.makeXYWH(x + 8f, y + getHeight() - 2f, getWidth() - 16f, 1f), linePaint);
     }
 

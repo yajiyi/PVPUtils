@@ -7,6 +7,7 @@ import com.pvp_utils.client.TermsManager;
 import com.pvp_utils.client.VersionWarningManager;
 import com.pvp_utils.client.NeteaseMusic.NeteaseMusicLocalService;
 import com.pvp_utils.client.command.CommandManager;
+import com.pvp_utils.client.gui.clickgui.theme.ClickGuiThemeManager;
 import com.pvp_utils.client.irc.IrcBridge;
 import com.pvp_utils.client.render.MainUI.MainUIBackgrounds;
 import com.pvp_utils.client.render.MainUI.MainUIScreenManager;
@@ -33,6 +34,7 @@ public class PVPUtilsClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         Config.load();
+        ClickGuiThemeManager.applyConfig();
         AntiCheat.verifyEnvironment();
         VictorySound.init();
         MainUIBackgrounds.init();

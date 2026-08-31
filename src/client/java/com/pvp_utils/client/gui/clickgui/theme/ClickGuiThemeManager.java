@@ -1,5 +1,6 @@
 package com.pvp_utils.client.gui.clickgui.theme;
 
+import com.pvp_utils.Config;
 import com.pvp_utils.client.gui.clickgui.theme.vape.VapeTheme;
 
 import java.util.Collection;
@@ -15,6 +16,10 @@ public final class ClickGuiThemeManager {
 
     static {
         register(FALLBACK);
+        register(new DarkTheme());
+        register(new GrayTheme());
+        register(new WhiteTheme());
+        register(new LightBlueTheme());
         register(new VapeTheme());
         currentTheme = FALLBACK;
     }
@@ -44,5 +49,26 @@ public final class ClickGuiThemeManager {
 
     public static Optional<ClickGuiTheme> find(String id) {
         return Optional.ofNullable(THEMES.get(id));
+    }
+
+    /** 当前选中主题的 id。 */
+    public static String currentId() {
+        return currentTheme == null ? FALLBACK.id() : currentTheme.id();
+    }
+
+    /** 根据 {@link Config#clickGuiTheme} 应用已保存的主题选择。 */
+    public static void applyConfig() {
+        String id = Config.clickGuiTheme;
+        if (id == null || id.isBlank() || !select(id)) {
+            currentTheme = FALLBACK;
+        }
+    }
+
+    /** 选择主题并持久化到配置文件。 */
+    public static boolean selectAndSave(String id) {
+        if (!select(id)) return false;
+        Config.clickGuiTheme = id;
+        Config.save();
+        return true;
     }
 }

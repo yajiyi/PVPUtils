@@ -1,5 +1,6 @@
 package com.pvp_utils.client.gui.clickgui.widget;
 
+import com.pvp_utils.client.gui.clickgui.theme.ClickGuiThemeColors;
 import com.pvp_utils.client.render.font.FontRenderer;
 import io.github.humbleui.skija.Canvas;
 import io.github.humbleui.skija.Paint;
@@ -30,7 +31,8 @@ public class SettingButton extends SettingWidget {
     @Override
     public void draw(Canvas canvas, float x, float y, float alpha) {
         pressT += (0f - pressT) * 0.18f;
-        int bgColor = lerpColor(0xFF2F54EB, 0xFF1D39C4, pressT);
+        int accent = ClickGuiThemeColors.current().accent;
+        int bgColor = lerpColor(accent, 0x000000, pressT * 0.18f);
         bgPaint.setColor(withAlpha(bgColor, alpha));
         canvas.drawRRect(RRect.makeXYWH(x, y, getWidth(), getHeight(), 8f), bgPaint);
         String text = label.get();

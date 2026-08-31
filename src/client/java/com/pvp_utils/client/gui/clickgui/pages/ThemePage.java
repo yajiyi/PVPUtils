@@ -1,32 +1,35 @@
 package com.pvp_utils.client.gui.clickgui.pages;
 
 import com.pvp_utils.Config;
+import com.pvp_utils.client.gui.clickgui.NewSettingsScreen;
 import com.pvp_utils.client.gui.clickgui.UiText;
+import com.pvp_utils.client.gui.clickgui.theme.ClickGuiThemeManager;
 import com.pvp_utils.client.gui.clickgui.widget.SettingCycle;
+import com.pvp_utils.client.gui.clickgui.widget.SettingLink;
 import com.pvp_utils.client.gui.clickgui.widget.SettingModule;
 import com.pvp_utils.client.gui.clickgui.widget.SettingSlider;
+import net.minecraft.client.Minecraft;
 
 import java.util.List;
 
 public class ThemePage extends BasePage {
     public ThemePage() {
-        modules.add(new SettingModule(UiText.t("全局主题", "Global Theme"), UiText.t("控制所有 HUD 模糊背景和文字颜色", "Control all HUD blur backgrounds and text colors"), null)
-                .addSub(UiText.t("主题", "Theme"), UiText.t("选择深色或浅色主题", "Choose dark or light theme"),
+        modules.add(new SettingModule(UiText.t("界面主题", "GUI Theme"), UiText.t("面板与 HUD 的配色和模糊设置", "Color and blur settings for the panel and HUDs"), null)
+                .addSub(UiText.t("面板主题", "Panel Theme"), UiText.t("点击浏览并切换所有面板主题", "Click to browse and switch all panel themes"),
+                        new SettingLink(() -> ClickGuiThemeManager.current().displayName(),
+                                () -> {
+                                    Minecraft mc = Minecraft.getInstance();
+                                    if (mc != null && mc.screen instanceof NewSettingsScreen screen) {
+                                        screen.openThemePreview();
+                                    }
+                                }))
+                .addSub(UiText.t("HUD 主题", "HUD Theme"), UiText.t("物品栏、灵动岛等 HUD 的颜色主题", "Color theme for inventory bar, Dynamic Island and other HUDs"),
                         new SettingCycle(List.of(UiText.t("深色", "Dark"), UiText.t("浅色", "Light")),
                                 () -> Config.hudTheme == Config.HudTheme.DARK ? 0 : 1,
                                 i -> { Config.hudTheme = i == 1 ? Config.HudTheme.LIGHT : Config.HudTheme.DARK; Config.save(); }))
                 .addSub(UiText.t("模糊强度", "Blur Strength"), UiText.t("调整所有 HUD 背景的高斯模糊半径", "Adjust the Gaussian blur radius for all HUD backgrounds"),
                         new SettingSlider(0.0, 200.0, "%.0f%%", () -> (double) Config.skiaBlurStrength * 100.0,
                                 v -> { Config.skiaBlurStrength = v.floatValue() / 100.0f; Config.save(); })));
-
-        modules.add(new SettingModule(UiText.t("GUI设置", "GUI Settings"), UiText.t("调整 ClickGUI 界面的显示与滚动行为", "Adjust ClickGUI display and scrolling behavior"), null)
-                .addSub(UiText.t("界面大小", "GUI Size"), UiText.t("调整 ClickGUI 面板的整体缩放", "Adjust the overall scale of the ClickGUI panel"),
-                        new SettingCycle(List.of("75%", "100%", "125%"),
-                                () -> Config.clickGuiScale,
-                                i -> { Config.clickGuiScale = i; Config.save(); }))
-                .addSub(UiText.t("滚动灵敏度", "Scroll Sensitivity"), UiText.t("调整 ClickGUI 滚轮滚动的速度", "Adjust the ClickGUI scroll wheel speed"),
-                        new SettingSlider(0.2, 5.0, "%.1fx", () -> (double) Config.clickGuiScrollSpeed,
-                                v -> { Config.clickGuiScrollSpeed = v.floatValue(); Config.save(); })));
 
         modules.add(new SettingModule(UiText.t("HUD 样式", "HUD Styles"), UiText.t("单独调整各个 HUD 组件的显示样式", "Adjust each HUD component display style separately"), null)
                 .addSubWhen(() -> Config.fullMode, UiText.t("目标 HUD", "Target HUD"), UiText.t("选择目标 HUD 样式", "Choose the Target HUD style"),
