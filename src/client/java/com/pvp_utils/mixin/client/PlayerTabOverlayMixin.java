@@ -1,7 +1,6 @@
 package com.pvp_utils.mixin.client;
 
 import com.pvp_utils.Config;
-import com.pvp_utils.client.irc.IrcBridge;
 import com.pvp_utils.client.modules.impl.Render.BetterPingDisplayRenderer;
 import com.pvp_utils.client.modules.impl.Render.DynamicIsland.DynamicIslandRenderer;
 import com.pvp_utils.client.modules.impl.Tool.NickHiderManager;
@@ -46,11 +45,10 @@ public class PlayerTabOverlayMixin {
     }
 
     @Inject(method = "getNameForDisplay", at = @At("RETURN"), cancellable = true)
-    private void pvp_utils$decorateIrcTabName(PlayerInfo playerInfo, CallbackInfoReturnable<Component> cir) {
+    private void pvp_utils$replaceTabName(PlayerInfo playerInfo, CallbackInfoReturnable<Component> cir) {
         if (playerInfo == null || playerInfo.getProfile() == null) {
             return;
         }
-        Component name = IrcBridge.decorateName(cir.getReturnValue(), playerInfo.getProfile().id());
-        cir.setReturnValue(NickHiderManager.replaceTabName(name, playerInfo));
+        cir.setReturnValue(NickHiderManager.replaceTabName(cir.getReturnValue(), playerInfo));
     }
 }

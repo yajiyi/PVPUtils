@@ -4,14 +4,17 @@ import com.pvp_utils.Config;
 import com.pvp_utils.client.ModuleKeybindManager;
 import com.pvp_utils.client.Version;
 import com.pvp_utils.client.NeteaseMusic.NeteaseMusicManager;
+import com.pvp_utils.client.gui.clickgui.NewSettingsScreen;
 import com.pvp_utils.client.gui.clickgui.UiText;
 import com.pvp_utils.client.gui.clickgui.widget.*;
-import com.pvp_utils.client.irc.IrcBridge;
 import com.pvp_utils.client.modules.impl.Render.CustomCapeManager;
 import com.pvp_utils.client.modules.impl.Tool.FakePlayerManager;
 import com.pvp_utils.client.modules.impl.Tool.NickHiderManager;
+import com.pvp_utils.client.modules.impl.Tool.ServerAutoLoginManager;
+import net.minecraft.client.Minecraft;
 
 import java.util.List;
+import java.util.Map;
 
 public class ToolPage extends BasePage {
 
@@ -24,6 +27,39 @@ public class ToolPage extends BasePage {
                 .addSub(UiText.t("发送延迟(tick)", "Send Delay (tick)"), "",
                         new SettingSlider(0, 100, "%.0f", () -> (double) Config.autoGGDelayTicks,
                                 v -> { Config.autoGGDelayTicks = Math.max(0, Math.min(100, v.intValue())); Config.save(); })));
+
+        SettingModule autoLogin = new SettingModule(UiText.t("自动登录", "Auto Login"), UiText.t("进入已配置的服务器时自动执行登录命令，用 .autologin <密码> 为当前服务器配置", "Automatically send the login command on configured servers; use .autologin <password> to configure the current server"),
+                new SettingToggle(() -> Config.serverAutoLogin, v -> { Config.serverAutoLogin = v; Config.save(); }));
+        for (Map.Entry<String, ServerAutoLoginManager.Rule> entry : ServerAutoLoginManager.rules().entrySet()) {
+            if (!entry.getValue().enabled) {
+                continue;
+            }
+            String address = entry.getKey();
+            autoLogin.addSubGroup(address, UiText.t("登录延迟 " + ServerAutoLoginManager.delayOf(address) + " 秒", "Login delay " + ServerAutoLoginManager.delayOf(address) + "s"));
+            autoLogin.addSubChild(UiText.t("登录密码", "Login Password"), UiText.t("输入后立即加密保存，已保存的密码不会显示", "Saved with encryption immediately; the stored password is never shown"),
+                    new SettingPasswordBox(
+                            () -> ServerAutoLoginManager.hasPassword(address) ? "********" : "",
+                            v -> ServerAutoLoginManager.setPassword(address, v), 64));
+            autoLogin.addSubChild(UiText.t("登录延迟", "Login Delay"), UiText.t("进入服务器后等待多久发送登录命令(0-30秒)", "How long to wait after joining before sending the login command (0-30s)"),
+                    new SettingSlider(0.0, 30.0, "%.0fs", () -> (double) ServerAutoLoginManager.delayOf(address),
+                            v -> ServerAutoLoginManager.setDelay(address, v.intValue())));
+            autoLogin.addSubChild(UiText.t("移除此服务器", "Remove Server"), "",
+                    new SettingButton(UiText.t("移除", "Remove"), () -> {
+                        if (!ServerAutoLoginManager.removeRule(address)) {
+                            return;
+                        }
+                        if (Minecraft.getInstance().screen instanceof NewSettingsScreen settings) {
+                            settings.rebuildCurrentPage();
+                        }
+                    }));
+        }
+        autoLogin.addSub(UiText.t("添加服务器", "Add Server"), "",
+                new SettingButton(UiText.t("添加", "Add"), () -> {
+                    if (Minecraft.getInstance().screen instanceof NewSettingsScreen settings) {
+                        settings.showAddServerPage();
+                    }
+                }));
+        modules.add(autoLogin);
 
         modules.add(new SettingModule(UiText.t("食物信息显示", "Food Info"), UiText.t("显示食物相关信息", "Show food-related information"),
                 new SettingToggle(() -> Config.foodInfo, v -> { Config.foodInfo = v; Config.save(); })));
@@ -69,8 +105,6 @@ public class ToolPage extends BasePage {
                 .addSub("Nickname", UiText.t("用于替换真实用户名的显示名称", "Display name used to replace your real username"),
                         new SettingTextBox(() -> Config.nickHiderNickname,
                                 v -> { Config.nickHiderNickname = NickHiderManager.normalizeNickname(v); Config.save(); }, 32))
-                .addSub(UiText.t("IRC 名称", "IRC Name"), UiText.t("开启后在游戏内优先使用当前IRC名称，对同客户端隐藏自己的真实ID", "After enabling, use the current IRC name in-game and hide your real ID from users of the same client"),
-                        new SettingToggle(() -> Config.nickHiderIrc, v -> { Config.nickHiderIrc = v; Config.save(); }))
                 .addSub(UiText.t("聊天栏", "Chat"), UiText.t("替换聊天消息中的自己用户名", "Replace your username in chat messages"),
                         new SettingToggle(() -> Config.nickHiderChat, v -> { Config.nickHiderChat = v; Config.save(); }))
                 .addSub(UiText.t("Tab栏", "Tab List"), UiText.t("替换玩家列表中的自己用户名", "Replace your username in the player list"),
@@ -202,22 +236,6 @@ public class ToolPage extends BasePage {
                         new SettingButton(UiText.t("打开", "Open"), CustomCapeManager::openFolder))
                 .addSub(UiText.t("切换披风", "Switch Cape"), UiText.t("切换当前使用的披风文件", "Switch the selected cape file"),
                         new SettingButton(() -> Config.customCapeImage, CustomCapeManager::cycleCape)));
-
-        if (IrcBridge.hasCurrentCosmetic("cape")) {
-            modules.add(new SettingModule(UiText.t("向IRC用户显示自定义披风", "Show Custom Cape to IRC Users"), UiText.t("向IRC使用者展示您的披风，该功能需要您先上传材质文件后才能使用。", "Show your cape to IRC users. Upload a cosmetic file before using this feature."),
-                    new SettingToggle(() -> Config.ircCapeReplacement, value -> { Config.ircCapeReplacement = value; Config.save(); })));
-        }
-
-        if (IrcBridge.hasCurrentCosmetic("skin")) {
-            modules.add(new SettingModule(UiText.t("向IRC用户显示自定义皮肤", "Show Custom Skin to IRC Users"), UiText.t("向IRC使用者展示您的皮肤，该功能需要您先上传材质文件后才能使用。", "Show your skin to IRC users. Upload a cosmetic file before using this feature."),
-                    new SettingToggle(() -> Config.ircSkinReplacement, value -> { Config.ircSkinReplacement = value; Config.save(); }))
-                    .addSubWhen(() -> Config.ircSkinReplacement, UiText.t("皮肤模型", "Skin Model"), UiText.t("选择粗壮或纤细的手臂模型", "Choose wide or slim arms"),
-                            new SettingCycle(List.of(
-                                    UiText.t("粗壮", "Wide"),
-                                    UiText.t("纤细", "Slim")),
-                                    () -> Config.ircSkinSlim ? 1 : 0,
-                                    index -> { Config.ircSkinSlim = index == 1; Config.save(); })));
-        }
 
         if (Version.DEBUG) {
             modules.add(new SettingModule(UiText.t("FakePlayer", "FakePlayer"), UiText.t("测试功能请勿开启", "Test feature, do not enable"),

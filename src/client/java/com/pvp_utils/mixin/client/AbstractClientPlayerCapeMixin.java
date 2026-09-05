@@ -1,7 +1,6 @@
 package com.pvp_utils.mixin.client;
 
 import com.pvp_utils.Config;
-import com.pvp_utils.client.irc.IrcBridge;
 import com.pvp_utils.client.modules.impl.Render.CustomCapeManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -17,8 +16,7 @@ public abstract class AbstractClientPlayerCapeMixin {
     @Inject(method = "getSkin", at = @At("RETURN"), cancellable = true)
     private void pvp_utils$customCape(CallbackInfoReturnable<PlayerSkin> cir) {
         AbstractClientPlayer player = (AbstractClientPlayer) (Object) this;
-        PlayerSkin skin = IrcBridge.overrideSkin(cir.getReturnValue(), player.getUUID());
-        cir.setReturnValue(skin);
+        PlayerSkin skin = cir.getReturnValue();
         if (!Config.customCape) return;
         Minecraft client = Minecraft.getInstance();
         if (client.player == null || (Object) this != client.player) return;

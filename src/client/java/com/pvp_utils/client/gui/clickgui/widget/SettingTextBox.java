@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class SettingTextBox extends SettingWidget {
-    private static SettingTextBox focused;
+    protected static SettingTextBox focused;
 
     private final Supplier<String> valueSupplier;
     private final Consumer<String> valueConsumer;
@@ -51,7 +51,7 @@ public class SettingTextBox extends SettingWidget {
         bgPaint.setColor(withAlpha(background, alpha));
         canvas.drawRRect(RRect.makeXYWH(x, y, getWidth(), getHeight(), 7f), bgPaint);
 
-        String text = getValue();
+        String text = getDisplayText();
         clampCursor(text);
         boolean empty = text.isEmpty();
         String display = empty ? UiText.t("点击输入", "Click to type") : text;
@@ -229,12 +229,16 @@ public class SettingTextBox extends SettingWidget {
         selectionAnchor = -1;
     }
 
-    private String getValue() {
+    protected String getValue() {
         String value = valueSupplier.get();
         return value == null ? "" : value;
     }
 
-    private void setValue(String value) {
+    protected String getDisplayText() {
+        return getValue();
+    }
+
+    protected void setValue(String value) {
         valueConsumer.accept(trimToMaxLength(value == null ? "" : value));
     }
 
@@ -315,7 +319,7 @@ public class SettingTextBox extends SettingWidget {
         if (selectionAnchor > value.length()) selectionAnchor = value.length();
     }
 
-    private String trimToMaxLength(String value) {
+    protected String trimToMaxLength(String value) {
         if (value.codePointCount(0, value.length()) <= maxLength) return value;
         int end = value.offsetByCodePoints(0, maxLength);
         return value.substring(0, end);

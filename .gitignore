@@ -30,3 +30,6 @@ src/client/java/com/pvp_utils/client/irc/**
 !src/client/java/com/pvp_utils/client/irc/login/
 !src/client/java/com/pvp_utils/client/irc/login/**
 src/client/resources/assets/pvp_utils/ircserver/
+
+.mimosa/
+.zcode/

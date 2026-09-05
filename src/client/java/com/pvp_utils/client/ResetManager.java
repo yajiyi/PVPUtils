@@ -17,6 +17,8 @@ public class ResetManager {
         Config.sneakAnimationSpeed = 1.0f;
         Config.autoScreenshot = false;
         Config.autoGG = false;
+        Config.serverAutoLogin = false;
+        Config.serverAutoLoginRules = "";
         Config.foodInfo = false;
         Config.hitMarker = false;
         Config.hitSound = false;
@@ -51,7 +53,6 @@ public class ResetManager {
         Config.autoSprint = false;
         Config.noSwimming = false;
         Config.nickHider = false;
-        Config.nickHiderIrc = false;
         Config.nickHiderChat = true;
         Config.nickHiderTab = true;
         Config.nickHiderNametag = true;
@@ -76,7 +77,6 @@ public class ResetManager {
         Config.blockCountDisplay = false;
         Config.blockCountDisplayMode = Config.BlockCountDisplayMode.NEW;
         Config.dynamicIsland = false;
-        Config.dynamicIslandNameMode = Config.DynamicIslandNameMode.IRC;
         Config.dynamicIslandBlockCount = false;
         Config.dynamicIslandBlockCountRestoresBlockCount = false;
         Config.dynamicIslandBlockCountAltIcon = false;
@@ -204,9 +204,6 @@ public class ResetManager {
         Config.noAttackCooldownAnimation = false;
         Config.customCape = false;
         Config.customCapeImage = "default.png";
-        Config.ircCapeReplacement = false;
-        Config.ircSkinReplacement = false;
-        Config.ircSkinSlim = false;
         Config.chatHudEditQuickEnable = true;
         Config.betterChat = false;
         Config.betterChatMessageAnimation = true;
@@ -233,11 +230,7 @@ public class ResetManager {
         Config.applyGameLanguageDefault();
         Config.termsRead = false;
         Config.fullMode = false;
-        Config.ircEnabled = false;
-        Config.ircAutoConnect = false;
-        Config.ircProtocolVersion = 1;
-        Config.ircUsername = "";
-        Config.ircToken = "";
+        Config.updateMirror = "https://ghfast.top/";
         Config.clientName = "PVPUtils";
         Config.autoGGText = "gg";
         Config.nickHiderNickname = "You";

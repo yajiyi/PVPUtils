@@ -77,6 +77,8 @@ public class NewSettingsScreen extends SkiaScreen {
     private float searchTextOffset = 0f;
     private float searchCursorTime = 0f;
     private long lastRenderMs = 0;
+    private float animatedClickGuiScale = -1f;
+    private float lastDelta = 0f;
 
     private float contentScrollOffset = 0f;
     private float targetScrollOffset = 0f;
@@ -144,6 +146,24 @@ public class NewSettingsScreen extends SkiaScreen {
         pages = new ArrayList<>(List.of(new CombatPage(), new RenderPage(), new ToolPage(), new OptimizePage(), new MiscPage(), new ThemePage()));
     }
 
+    public void rebuildCurrentPage() {
+        pages.set(selectedTab, switch (selectedTab) {
+            case 0 -> new CombatPage();
+            case 1 -> new RenderPage();
+            case 2 -> new ToolPage();
+            case 3 -> new OptimizePage();
+            case 4 -> new MiscPage();
+            default -> new ThemePage();
+        });
+        invalidateScrollLayout();
+        applySearch();
+    }
+
+    public void showAddServerPage() {
+        pages.set(selectedTab, new AddServerPage());
+        invalidateScrollLayout();
+    }
+
     private float[] layout(int width, int height) {
         float cardW = BASE_CARD_W;
         float cardH = BASE_CARD_H;
@@ -178,7 +198,12 @@ public class NewSettingsScreen extends SkiaScreen {
         float fitY = Math.max(0.1f, (layoutHeight - SCREEN_MARGIN) / BASE_CARD_H);
         float fit = Math.min(1f, Math.min(fitX, fitY));
         float guiScale = minecraft == null ? 2f : Math.max(1f, (float) minecraft.getWindow().getGuiScale());
-        return fit * 2f / guiScale;
+        float[] scales = {0.75f, 1.0f, 1.25f};
+        float targetScale = scales[Math.max(0, Math.min(Config.clickGuiScale, scales.length - 1))];
+        if (animatedClickGuiScale < 0f) animatedClickGuiScale = targetScale;
+        animatedClickGuiScale += (targetScale - animatedClickGuiScale) * Math.min(1f, lastDelta * 12f);
+        if (Math.abs(animatedClickGuiScale - targetScale) < 0.001f) animatedClickGuiScale = targetScale;
+        return fit * 2f / guiScale * animatedClickGuiScale;
     }
 
     private float getVisualScale(int width, int height) {
@@ -439,6 +464,7 @@ public class NewSettingsScreen extends SkiaScreen {
         long now = System.currentTimeMillis();
         float dt = lastRenderMs == 0 ? 0.016f : Math.min((now - lastRenderMs) / 1000f, 0.033f);
         lastRenderMs = now;
+        lastDelta = dt;
 
         if (closing) {
             openProgress = clamp01(openProgress - dt / OPEN_DURATION);
@@ -668,7 +694,7 @@ public class NewSettingsScreen extends SkiaScreen {
         // 主题名
         String name = theme.displayName();
         float nw = FontRenderer.measureTextWidth(name, 12f);
-        FontRenderer.drawText(canvas, name, cx + (THUMB_SIZE - nw) / 2f, cy + THUMB_SIZE + 17f, 12f, withAlpha(c.primaryText, alpha));
+        FontRenderer.drawText(canvas, name, cx + (THUMB_SIZE - nw) / 2f, cy + THUMB_SIZE + 17f, 12f, withAlpha(ClickGuiThemeColors.current().primaryText, alpha));
     }
 
     private void drawScrollbar(Canvas canvas, BasePage page, float contentX, float contentY, float contentW, float contentH, float alpha, ClickGuiThemeColors tc) {
@@ -916,14 +942,17 @@ public class NewSettingsScreen extends SkiaScreen {
         for (int i = 0; i < TAB_KEYS_ZH.length; i++) {
             float ty = tabStartY + i * (tabH + tabGap);
             if (mx >= cardX + 12f && mx <= cardX + 12f + tabW && my >= ty && my <= ty + tabH) {
-                if (button == 0) {
-                    clearSearch();
-                    themePreviewMode = false;
-                    selectedTab = i;
-                    targetScrollOffset = 0f;
-                    contentScrollOffset = 0f;
-                    invalidateScrollLayout();
+            if (button == 0) {
+                clearSearch();
+                themePreviewMode = false;
+                selectedTab = i;
+                if (pages.get(selectedTab) instanceof AddServerPage) {
+                    pages.set(selectedTab, new ToolPage());
                 }
+                targetScrollOffset = 0f;
+                contentScrollOffset = 0f;
+                invalidateScrollLayout();
+            }
                 return true;
             }
         }
@@ -939,15 +968,7 @@ public class NewSettingsScreen extends SkiaScreen {
                 themePreviewMode = false;
                 ResetManager.resetAll();
                 resetConfirm = false;
-                pages.set(selectedTab, switch (selectedTab) {
-                    case 0 -> new CombatPage();
-                    case 1 -> new RenderPage();
-                    case 2 -> new ToolPage();
-                    case 3 -> new OptimizePage();
-                    case 4 -> new MiscPage();
-                    default -> new ThemePage();
-                });
-                applySearch();
+                rebuildCurrentPage();
             } else {
                 resetConfirm = true;
             }
@@ -1044,7 +1065,7 @@ public class NewSettingsScreen extends SkiaScreen {
         if (layoutMx >= contentX && layoutMx <= contentX + contentW && layoutMy >= contentY && layoutMy <= contentY + contentH) {
             BasePage page = activePage();
             updateScrollCache(page, contentH);
-            targetScrollOffset = Math.max(0f, Math.min(cachedScrollMax, targetScrollOffset + (float)(-vScroll * 16f)));
+            targetScrollOffset = Math.max(0f, Math.min(cachedScrollMax, targetScrollOffset + (float)(-vScroll * 16f * Math.max(0.2f, Config.clickGuiScrollSpeed))));
             invalidateScrollLayout();
             return true;
         }

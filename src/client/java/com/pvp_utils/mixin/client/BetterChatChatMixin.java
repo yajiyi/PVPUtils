@@ -19,12 +19,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Mixin(ChatComponent.class)
 public abstract class BetterChatChatMixin {
     private static final int CHAT_HEAD_SIZE = 8;
     private static final int CHAT_HEAD_GAP = 2;
     private static final int CHAT_HEAD_SHIFT = CHAT_HEAD_SIZE + CHAT_HEAD_GAP;
+    private static final AtomicBoolean REPLACING = new AtomicBoolean(false);
     @Shadow private int chatScrollbarPos;
     @Shadow @Final private List<GuiMessage.Line> trimmedMessages;
     @Shadow private int getLineHeight() { return 0; }
@@ -50,10 +52,17 @@ public abstract class BetterChatChatMixin {
 
     @Inject(method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/GuiMessageTag;)V", at = @At("HEAD"), cancellable = true)
     private void pvp_utils$nickHiderChat(Component message, MessageSignature signatureData, GuiMessageTag indicator, CallbackInfo ci) {
-        Component replaced = NickHiderManager.replaceChat(message);
-        if (replaced != message) {
-            ((ChatComponent) (Object) this).addMessage(replaced, signatureData, indicator);
-            ci.cancel();
+        if (!REPLACING.compareAndSet(false, true)) {
+            return;
+        }
+        try {
+            Component replaced = NickHiderManager.replaceChat(message);
+            if (replaced != message) {
+                ((ChatComponent) (Object) this).addMessage(replaced, signatureData, indicator);
+                ci.cancel();
+            }
+        } finally {
+            REPLACING.set(false);
         }
     }
 

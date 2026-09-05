@@ -1,6 +1,5 @@
 package com.pvp_utils.mixin.client;
 
-import com.pvp_utils.client.irc.IrcBridge;
 import com.pvp_utils.client.modules.impl.Tool.NickHiderManager;
 import com.pvp_utils.client.util.NameTagPlayerFilterState;
 import com.pvp_utils.client.util.NameTagPlayerFilterContext;
@@ -39,12 +38,11 @@ public class EntityRendererMixin {
     }
 
     @Inject(method = "getNameTag", at = @At("RETURN"), cancellable = true)
-    private void pvp_utils$decorateIrcNameTag(Entity entity, CallbackInfoReturnable<Component> cir) {
+    private void pvp_utils$replaceNameTag(Entity entity, CallbackInfoReturnable<Component> cir) {
         if (!(entity instanceof Player)) {
             return;
         }
-        Component name = IrcBridge.decorateName(cir.getReturnValue(), entity.getUUID());
-        cir.setReturnValue(NickHiderManager.replaceNameTag(name, entity));
+        cir.setReturnValue(NickHiderManager.replaceNameTag(cir.getReturnValue(), entity));
     }
 
     private static boolean isRealPlayer(Entity entity) {

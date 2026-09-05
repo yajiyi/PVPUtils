@@ -1,6 +1,7 @@
 package com.pvp_utils.client.gui;
 
 import com.pvp_utils.Config;
+import com.pvp_utils.client.modules.impl.Tool.ServerAutoLoginManager;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -38,6 +39,16 @@ public class MultiplayerCompatibilityScreen extends Screen {
                 button.setMessage(oneClickLabel());
             }).bounds(buttonX, firstButtonY + 24, buttonWidth, 20).build());
         }
+
+        this.addRenderableWidget(Button.builder(autoLoginLabel(), button -> {
+            Config.serverAutoLogin = !Config.serverAutoLogin;
+            Config.save();
+            button.setMessage(autoLoginLabel());
+        }).bounds(buttonX, this.height / 2 + 60, buttonWidth, 20).build());
+
+        this.addRenderableWidget(Button.builder(serversLabel(), button ->
+                this.minecraft.setScreen(new AutoLoginServersScreen(this)))
+                .bounds(buttonX, this.height / 2 + 84, buttonWidth, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.literal(Config.isChinese ? "完成" : "Done"), button -> this.onClose())
                 .bounds(centerX - 100, this.height - 28, 200, 20).build());
@@ -87,6 +98,18 @@ public class MultiplayerCompatibilityScreen extends Screen {
 
     private static Component translationKeyLabel() {
         return toggleLabel(Config.isChinese ? "反检测翻译键" : "Anti Detecting Translation Key", Config.modifyTranslationKeys);
+    }
+
+    private static Component autoLoginLabel() {
+        return toggleLabel(Config.isChinese ? "自动登录" : "Auto Login", Config.serverAutoLogin);
+    }
+
+    private static Component serversLabel() {
+        int count = 0;
+        for (ServerAutoLoginManager.Rule rule : ServerAutoLoginManager.rules().values()) {
+            if (rule.enabled) count++;
+        }
+        return Component.literal((Config.isChinese ? "自动登录服务器列表 (" : "Auto Login Servers (") + count + ")");
     }
 
     private static Component toggleLabel(String name, boolean enabled) {

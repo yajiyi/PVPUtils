@@ -2,13 +2,11 @@ package com.pvp_utils.client.command;
 
 import com.pvp_utils.Config;
 import com.pvp_utils.client.command.impl.AutoGGCommand;
+import com.pvp_utils.client.command.impl.AutoLoginCommand;
 import com.pvp_utils.client.command.impl.ClientCommandPrefixCommand;
 import com.pvp_utils.client.command.impl.ClientNameCommand;
 import com.pvp_utils.client.command.impl.DotCommand;
 import com.pvp_utils.client.command.impl.HelpCommand;
-import com.pvp_utils.client.command.impl.IrcChatCommand;
-import com.pvp_utils.client.command.impl.IrcCommand;
-import com.pvp_utils.client.command.impl.IrcPrivateMessageCommand;
 import com.pvp_utils.client.command.impl.UpdateCommand;
 import com.pvp_utils.client.command.impl.VersionWarningCommand;
 import com.pvp_utils.client.util.ChatUtils;
@@ -26,9 +24,7 @@ public final class CommandManager {
             new VersionWarningCommand(),
             new ClientNameCommand(),
             new AutoGGCommand(),
-            new IrcCommand(),
-            new IrcPrivateMessageCommand(),
-            new IrcChatCommand()
+            new AutoLoginCommand()
     );
 
     private CommandManager() {
@@ -36,6 +32,18 @@ public final class CommandManager {
 
     public static void register() {
         ClientSendMessageEvents.ALLOW_CHAT.register(message -> !execute(message));
+    }
+
+    public static boolean tryExecuteSlash(String command) {
+        if (!"/".equals(getPrefix()) || command == null || command.isBlank()) {
+            return false;
+        }
+        DotCommand handler = find(firstToken(command));
+        if (handler == null) {
+            return false;
+        }
+        handler.execute(rest(command));
+        return true;
     }
 
     public static boolean execute(String rawMessage) {

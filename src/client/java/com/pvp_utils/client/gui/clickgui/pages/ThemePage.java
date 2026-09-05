@@ -31,6 +31,15 @@ public class ThemePage extends BasePage {
                         new SettingSlider(0.0, 200.0, "%.0f%%", () -> (double) Config.skiaBlurStrength * 100.0,
                                 v -> { Config.skiaBlurStrength = v.floatValue() / 100.0f; Config.save(); })));
 
+        modules.add(new SettingModule(UiText.t("GUI设置", "GUI Settings"), UiText.t("调整 ClickGUI 界面的显示与滚动行为", "Adjust ClickGUI display and scrolling behavior"), null)
+                .addSub(UiText.t("界面大小", "GUI Size"), UiText.t("调整 ClickGUI 面板的整体缩放", "Adjust the overall scale of the ClickGUI panel"),
+                        new SettingCycle(List.of("75%", "100%", "125%"),
+                                () -> Config.clickGuiScale,
+                                i -> { Config.clickGuiScale = i; Config.save(); }))
+                .addSub(UiText.t("滚动灵敏度", "Scroll Sensitivity"), UiText.t("调整 ClickGUI 滚轮滚动的速度", "Adjust the ClickGUI scroll wheel speed"),
+                        new SettingSlider(0.2, 5.0, "%.1fx", () -> (double) Config.clickGuiScrollSpeed,
+                                v -> { Config.clickGuiScrollSpeed = v.floatValue(); Config.save(); })));
+
         modules.add(new SettingModule(UiText.t("HUD 样式", "HUD Styles"), UiText.t("单独调整各个 HUD 组件的显示样式", "Adjust each HUD component display style separately"), null)
                 .addSubWhen(() -> Config.fullMode, UiText.t("目标 HUD", "Target HUD"), UiText.t("选择目标 HUD 样式", "Choose the Target HUD style"),
                         new SettingCycle(List.of("New", "Blur", "Lite"),

@@ -8,7 +8,6 @@ import com.pvp_utils.client.VersionWarningManager;
 import com.pvp_utils.client.NeteaseMusic.NeteaseMusicLocalService;
 import com.pvp_utils.client.command.CommandManager;
 import com.pvp_utils.client.gui.clickgui.theme.ClickGuiThemeManager;
-import com.pvp_utils.client.irc.IrcBridge;
 import com.pvp_utils.client.render.MainUI.MainUIBackgrounds;
 import com.pvp_utils.client.render.MainUI.MainUIScreenManager;
 import com.pvp_utils.client.modules.impl.Combat.ElytraAssistManager;
@@ -25,6 +24,7 @@ import com.pvp_utils.client.modules.impl.Tool.FakePlayerManager;
 import com.pvp_utils.client.modules.impl.Tool.FishingRodAssistManager;
 import com.pvp_utils.client.modules.impl.Tool.FoodInfo.FoodInfoHudOverlay;
 import com.pvp_utils.client.modules.impl.Tool.Freelook.FreelookManager;
+import com.pvp_utils.client.modules.impl.Tool.ServerAutoLoginManager;
 import com.pvp_utils.client.modules.impl.Tool.Zoom.ZoomManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -50,6 +50,7 @@ public class PVPUtilsClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             AutoChestDepositManager.tick(client);
             AutoGGManager.tick(client);
+            ServerAutoLoginManager.tick(client);
             ElytraAssistManager.tick(client);
             MainHandAssistManager.tick(client);
             InputMethodFix.tick(client);
@@ -62,7 +63,6 @@ public class PVPUtilsClient implements ClientModInitializer {
             FreelookManager.tick(client);
             VersionWarningManager.tick(client);
             Update.tick(client);
-            IrcBridge.tick(client);
             ModuleKeybindManager.tick(client);
         });
 

@@ -189,12 +189,6 @@ public class RenderPage extends BasePage {
 
         modules.add(new SettingModule(UiText.t("灵动岛", "Dynamic Island"), UiText.t("在界面上添加灵动岛组件", "Add a Dynamic Island component to the HUD"),
                 new SettingToggle(() -> Config.dynamicIsland, v -> { Config.setDynamicIsland(v); Config.save(); }))
-                .addSub(UiText.t("名称模式", "Name Mode"), UiText.t("选择灵动岛和 Tab 列表的名称来源", "Choose the name source for the Dynamic Island and Tab list"),
-                        new SettingCycle(List.of(
-                                UiText.t("IRC 名称", "IRC Name"),
-                                UiText.t("账户名称", "Account Name")),
-                                () -> Config.dynamicIslandNameMode == Config.DynamicIslandNameMode.ACCOUNT ? 1 : 0,
-                                i -> { Config.dynamicIslandNameMode = i == 1 ? Config.DynamicIslandNameMode.ACCOUNT : Config.DynamicIslandNameMode.IRC; Config.save(); }))
                 .addSub(UiText.t("方块数量显示", "Block Count Display"), "",
                         new SettingToggle(() -> Config.dynamicIslandBlockCount, v -> {
                             Config.setDynamicIslandBlockCount(v);

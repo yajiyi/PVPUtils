@@ -34,6 +34,8 @@ public class Config {
     public static String clientCommandPrefix = ".";
     public static boolean autoScreenshot = false;
     public static boolean autoGG = false;
+    public static boolean serverAutoLogin = false;
+    public static String serverAutoLoginRules = "";
     public static boolean foodInfo = false;
     public static boolean hitMarker = false;
     public static boolean hitSound = false;
@@ -69,7 +71,6 @@ public class Config {
     public static boolean autoSprint = false;
     public static boolean noSwimming = false;
     public static boolean nickHider = false;
-    public static boolean nickHiderIrc = false;
     public static boolean nickHiderChat = true;
     public static boolean nickHiderTab = true;
     public static boolean nickHiderNametag = true;
@@ -78,7 +79,6 @@ public class Config {
     public static boolean blockCountDisplay = false;
     public static BlockCountDisplayMode blockCountDisplayMode = BlockCountDisplayMode.NEW;
     public static boolean dynamicIsland = false;
-    public static DynamicIslandNameMode dynamicIslandNameMode = DynamicIslandNameMode.IRC;
     public static boolean dynamicIslandBlockCount = false;
     public static boolean dynamicIslandBlockCountRestoresBlockCount = false;
     public static boolean dynamicIslandBlockCountAltIcon = false;
@@ -94,6 +94,8 @@ public class Config {
     public static HudTheme hudTheme = HudTheme.LIGHT;
     public static float skiaBlurStrength = 1.0f;
     public static String clickGuiTheme = "default";
+    public static int clickGuiScale = 1;
+    public static float clickGuiScrollSpeed = 1.0f;
     public static boolean timeChange = false;
     public static boolean weatherChange = false;
     public static boolean zoom = false;
@@ -141,9 +143,6 @@ public class Config {
     public static boolean motionCamera = false;
     public static boolean noAttackCooldownAnimation = false;
     public static boolean customCape = false;
-    public static boolean ircCapeReplacement = false;
-    public static boolean ircSkinReplacement = false;
-    public static boolean ircSkinSlim = false;
     public static boolean chatHudEditQuickEnable = true;
     public static boolean betterChat = false;
     public static boolean betterChatMessageAnimation = true;
@@ -167,14 +166,10 @@ public class Config {
     public static boolean termsRead = false;
     public static boolean versionWarningDisabled = false;
     public static boolean fullMode = false;
-    public static boolean ircEnabled = false;
-    public static boolean ircAutoConnect = false;
     public static String clientName = "PVPUtils";
+    public static String updateMirror = "https://ghfast.top/";
     public static String autoGGText = "gg";
     public static String nickHiderNickname = "You";
-    public static String ircUsername = "";
-    public static String ircToken = "";
-    public static String ircPasswordHash = "";
     public static String mainUIBackgroundImage = "1.png";
     public static String mainUIGlslShader = "Galaxy.frag.glsl";
     public static String mainUIVideoBackground = "background.mp4";
@@ -295,7 +290,6 @@ public class Config {
     public static int mainHandAssistSwitchDelayTicks = 2;
     public static int autoChestDepositDepositDelay = 4;
     public static int autoChestDepositCloseDelay = 4;
-    public static int ircProtocolVersion = 1;
     public static int clientTime = 6000;
     public static int zoomAmount = 4;
     public static int zoomScrollSteps = 10;
@@ -324,7 +318,6 @@ public class Config {
     public enum FreelookTriggerMode { HOLD, TOGGLE }
     public enum MainUIBackgroundMode { GLSL, IMAGE, VIDEO }
     public enum MainUIGlslMode { RANDOM, FIXED }
-    public enum DynamicIslandNameMode { IRC, ACCOUNT }
 
     public static void setMotionCamera(boolean value) {
         motionCamera = value;
@@ -499,12 +492,6 @@ public class Config {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public static void clearIrcSession() {
-        ircEnabled = false;
-        ircAutoConnect = false;
-        ircToken = "";
     }
 
     private static void loadJsonConfig(Path path) {
@@ -739,6 +726,7 @@ public class Config {
             new ModuleRule("SneakAnimationAdjustment", "noSneakAnimation", "noSneakAnimation", "sneakDropScale", "sneakAnimationSpeed"),
             new ModuleRule("AutoScreenshot", "autoScreenshot", "autoScreenshot"),
             new ModuleRule("AutoGG", "autoGG", "autoGG"),
+            new ModuleRule("ServerAutoLogin", "serverAutoLogin", "serverAutoLogin", "serverAutoLoginRules"),
             new ModuleRule("FoodInfo", "foodInfo", "foodInfo"),
             new ModuleRule("LowHealthWarning", "lowHealthNotify", "lowHealthNotify"),
             new ModuleRule("DamageNumbers", "damageNumbers", "damageNumbers"),
@@ -790,6 +778,7 @@ public class Config {
             new ModuleRule("NameTags", "nameTag", "nameTag"),
             new ModuleRule("DynamicMotionBlur", "dynamicMotionBlur", "dynamicMotionBlur", "motionBlurAlgorithm"),
             new ModuleRule("HUDTheme", "hud", "", "skiaBlurStrength"),
+            new ModuleRule("ClickGuiScale", "clickGui", "", "clickGuiScale", "clickGuiScrollSpeed"),
             new ModuleRule("Notification", "notification", ""),
     };
 

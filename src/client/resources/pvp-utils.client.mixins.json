@@ -63,6 +63,7 @@
     "FoodInfoItemStackMixin",
     "FoodInfoClientTooltipComponentMixin",
     "ChatScreenMixin",
+    "CommandSuggestionsMixin",
     "ChatScreenAccessor",
     "AbstractSignRendererMixin",
     "EnchantTableRendererMixin",

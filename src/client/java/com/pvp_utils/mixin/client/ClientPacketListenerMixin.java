@@ -1,5 +1,6 @@
 package com.pvp_utils.mixin.client;
 
+import com.pvp_utils.client.command.CommandManager;
 import com.pvp_utils.client.modules.impl.Combat.HitMarkerRenderer;
 import com.pvp_utils.client.modules.impl.Render.ArmorTransparency.ArmorTransparencyManager;
 import com.pvp_utils.client.modules.impl.Render.DamageNumberRenderer;
@@ -27,6 +28,13 @@ import java.util.List;
 
 @Mixin(ClientPacketListener.class)
 public class ClientPacketListenerMixin {
+    @Inject(method = "sendCommand", at = @At("HEAD"), cancellable = true)
+    private void pvp_utils$interceptClientSlashCommands(String command, CallbackInfo ci) {
+        if (CommandManager.tryExecuteSlash(command)) {
+            ci.cancel();
+        }
+    }
+
     @Inject(method = "handleSetTime", at = @At("HEAD"), cancellable = true)
     private void pvp_utils$overrideServerTime(ClientboundSetTimePacket packet, CallbackInfo ci) {
         if (Config.timeChange) {

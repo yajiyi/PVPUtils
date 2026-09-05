@@ -47,17 +47,29 @@ public class SettingModule {
     }
 
     public SettingModule addSub(String title, String subtitle, SettingWidget widget) {
-        subEntries.add(new SubEntry(title, subtitle, widget, () -> true));
+        subEntries.add(new SubEntry(title, subtitle, widget, () -> true, false));
         return this;
     }
 
     public SettingModule addSub(String title, String subtitle, SettingWidget widget, BooleanSupplier visibleSupplier) {
-        subEntries.add(new SubEntry(title, subtitle, widget, visibleSupplier));
+        subEntries.add(new SubEntry(title, subtitle, widget, visibleSupplier, false));
         return this;
     }
 
     public SettingModule addSubWhen(BooleanSupplier visibleSupplier, String title, String subtitle, SettingWidget widget) {
-        subEntries.add(new SubEntry(title, subtitle, widget, visibleSupplier));
+        subEntries.add(new SubEntry(title, subtitle, widget, visibleSupplier, false));
+        return this;
+    }
+
+    public SettingModule addSubGroup(String title, String subtitle) {
+        subEntries.add(new SubEntry(title, subtitle, null, () -> true, true));
+        return this;
+    }
+
+    public SettingModule addSubChild(String title, String subtitle, SettingWidget widget) {
+        if (!subEntries.isEmpty()) {
+            subEntries.getLast().children.add(new SubEntry(title, subtitle, widget, () -> true, false));
+        }
         return this;
     }
 
@@ -115,12 +127,17 @@ public class SettingModule {
             if (UiText.matchesSearch(sub.title, needle) || UiText.matchesSearch(sub.subtitle, needle)) {
                 return true;
             }
+            for (SubEntry child : sub.children) {
+                if (UiText.matchesSearch(child.title, needle) || UiText.matchesSearch(child.subtitle, needle)) {
+                    return true;
+                }
+            }
         }
         return false;
     }
 
     public float getTotalHeight() {
-        return MODULE_H + expandProgress * getVisibleSubCount() * SUB_H;
+        return MODULE_H + expandProgress * visibleSubHeight();
     }
 
     public boolean isAnimating() {
@@ -128,7 +145,12 @@ public class SettingModule {
         if (isKeybindable() && (Math.abs(keybindWidth - targetKeybindWidth()) > 0.01f || keybindHover > 0.01f || keybindRed > 0.01f)) return true;
         if (mainWidget != null && mainWidget.isAnimating()) return true;
         for (SubEntry sub : subEntries) {
-            if (sub.isVisible() && sub.widget != null && sub.widget.isAnimating()) return true;
+            if (!sub.isVisible()) continue;
+            if (Math.abs((sub.expanded ? 1f : 0f) - sub.childProgress) > 0.01f) return true;
+            if (sub.widget != null && sub.widget.isAnimating()) return true;
+            for (SubEntry child : sub.children) {
+                if (child.isVisible() && child.widget != null && child.widget.isAnimating()) return true;
+            }
         }
         return false;
     }
@@ -140,7 +162,14 @@ public class SettingModule {
         if (isKeybindable()) keybindWidth += (targetKeybindWidth() - keybindWidth) * Math.min(1f, dt * 15f);
         if (mainWidget != null) mainWidget.update(dt);
         for (SubEntry sub : subEntries) {
-            if (sub.isVisible() && sub.widget != null) sub.widget.update(dt);
+            if (!sub.isVisible()) continue;
+            sub.childProgress += ((sub.expanded ? 1f : 0f) - sub.childProgress) * Math.min(1f, dt * 14f);
+            if (sub.childProgress < 0.001f) sub.childProgress = 0f;
+            if (sub.childProgress > 0.999f) sub.childProgress = 1f;
+            if (sub.widget != null) sub.widget.update(dt);
+            for (SubEntry child : sub.children) {
+                if (child.isVisible() && child.widget != null) child.widget.update(dt);
+            }
         }
     }
 
@@ -166,6 +195,19 @@ public class SettingModule {
                     sub.widget.draw(canvas, wx, wy, alpha * expandProgress);
                 }
                 sy += SUB_H;
+                if (sub.group && sub.childProgress > 0.01f) {
+                    float childAlpha = alpha * expandProgress * sub.childProgress;
+                    for (SubEntry child : sub.children) {
+                        if (!child.isVisible()) continue;
+                        float childBottom = sy + SUB_H - 6f;
+                        if (childBottom > viewportTop && sy < viewportBottom && child.widget != null) {
+                            float wx = x + contentW - PAD_X - child.widget.getWidth();
+                            float wy = sy + (SUB_H - 6f - child.widget.getHeight()) / 2f;
+                            child.widget.draw(canvas, wx, wy, childAlpha);
+                        }
+                        sy += SUB_H;
+                    }
+                }
             }
         }
     }
@@ -241,8 +283,31 @@ public class SettingModule {
                         FontRenderer.drawText(canvas, sub.title, x + PAD_X + 8f, sy + 16f, 12f, withAlpha(tc.subModuleText, subAlpha));
                         FontRenderer.drawText(canvas, sub.subtitle, x + PAD_X + 8f, sy + 30f, 10f, withAlpha(tc.secondaryText, subAlpha));
                     }
+                    if (sub.group && sub.hasVisibleChildren()) {
+                        String arrow = sub.childProgress > 0.5f ? ARROW_EXPANDED : ARROW_COLLAPSED;
+                        float aw = FontRenderer.measureTextWidth(arrow, 12f, FontRenderer.MATERIAL_SYMBOLS);
+                        FontRenderer.drawText(canvas, arrow, x + contentW - 13f - aw, sy + (SUB_H - 6f) / 2f + 5.5f, 12f, withAlpha(tc.mutedText, subAlpha), FontRenderer.MATERIAL_SYMBOLS);
+                    }
                 }
                 sy += SUB_H;
+                if (sub.group && sub.childProgress > 0.01f) {
+                    float subAlpha = alpha * progress * sub.childProgress;
+                    for (SubEntry child : sub.children) {
+                        if (!child.isVisible()) continue;
+                        float childBottom = sy + SUB_H - 6f;
+                        if (childBottom > viewportTop && sy < viewportBottom) {
+                            subPaint.setColor(withAlpha(tc.subModule, subAlpha));
+                            canvas.drawRRect(RRect.makeXYWH(x + 16f, sy, contentW - 16f, SUB_H - 6f, 8f), subPaint);
+                            if (child.subtitle == null || child.subtitle.isEmpty()) {
+                                FontRenderer.drawText(canvas, child.title, x + PAD_X + 16f, sy + (SUB_H - 6f) / 2f + 4.5f, 12f, withAlpha(tc.subModuleText, subAlpha));
+                            } else {
+                                FontRenderer.drawText(canvas, child.title, x + PAD_X + 16f, sy + 16f, 12f, withAlpha(tc.subModuleText, subAlpha));
+                                FontRenderer.drawText(canvas, child.subtitle, x + PAD_X + 16f, sy + 30f, 10f, withAlpha(tc.secondaryText, subAlpha));
+                            }
+                        }
+                        sy += SUB_H;
+                    }
+                }
             }
         }
         if (hasVisibleSubEntries()) {
@@ -284,12 +349,30 @@ public class SettingModule {
             for (SubEntry sub : subEntries) {
                 if (!sub.isVisible()) continue;
                 float subBottom = sy + SUB_H - 6f;
-                if (my >= sy && my <= subBottom && sub.widget != null) {
-                    float wx = x + contentW - PAD_X - sub.widget.getWidth();
-                    float wy = sy + (SUB_H - 6f - sub.widget.getHeight()) / 2f;
-                    return sub.widget.onClick(mx, my, wx, wy, button);
+                if (my >= sy && my <= subBottom) {
+                    if (sub.group) {
+                        sub.expanded = !sub.expanded;
+                        return true;
+                    }
+                    if (sub.widget != null) {
+                        float wx = x + contentW - PAD_X - sub.widget.getWidth();
+                        float wy = sy + (SUB_H - 6f - sub.widget.getHeight()) / 2f;
+                        return sub.widget.onClick(mx, my, wx, wy, button);
+                    }
                 }
                 sy += SUB_H;
+                if (sub.group && sub.childProgress > 0.01f) {
+                    for (SubEntry child : sub.children) {
+                        if (!child.isVisible()) continue;
+                        float childBottom = sy + SUB_H - 6f;
+                        if (my >= sy && my <= childBottom && child.widget != null) {
+                            float wx = x + contentW - PAD_X - child.widget.getWidth();
+                            float wy = sy + (SUB_H - 6f - child.widget.getHeight()) / 2f;
+                            return child.widget.onClick(mx, my, wx, wy, button);
+                        }
+                        sy += SUB_H;
+                    }
+                }
             }
         }
         return false;
@@ -321,6 +404,22 @@ public class SettingModule {
                     return s.onDrag(mx, my, wx, wy);
                 }
                 sy += SUB_H;
+                if (sub.group && sub.childProgress > 0.01f) {
+                    for (SubEntry child : sub.children) {
+                        if (!child.isVisible()) continue;
+                        if (child.widget instanceof SettingTextBox textBox) {
+                            float wx = x + contentW - PAD_X - textBox.getWidth();
+                            float wy = sy + (SUB_H - 6f - textBox.getHeight()) / 2f;
+                            if (textBox.onDrag(mx, my, wx, wy)) return true;
+                        }
+                        if (child.widget instanceof SettingSlider s && s.isDragging()) {
+                            float wx = x + contentW - PAD_X - s.getWidth();
+                            float wy = sy + (SUB_H - 6f - s.getHeight()) / 2f;
+                            return s.onDrag(mx, my, wx, wy);
+                        }
+                        sy += SUB_H;
+                    }
+                }
             }
         }
         return false;
@@ -330,13 +429,22 @@ public class SettingModule {
         if (mainWidget instanceof SettingSlider s) s.releaseDrag();
         for (SubEntry sub : subEntries) {
             if (sub.isVisible() && sub.widget instanceof SettingSlider s) s.releaseDrag();
+            for (SubEntry child : sub.children) {
+                if (child.isVisible() && child.widget instanceof SettingSlider cs) cs.releaseDrag();
+            }
         }
     }
 
-    private int getVisibleSubCount() {
-        int count = 0;
-        for (SubEntry sub : subEntries) if (sub.isVisible()) count++;
-        return count;
+    private float visibleSubHeight() {
+        float height = 0f;
+        for (SubEntry sub : subEntries) {
+            if (!sub.isVisible()) continue;
+            height += SUB_H;
+            if (sub.group && sub.childProgress > 0.001f) {
+                height += sub.childProgress * sub.visibleChildCount() * SUB_H;
+            }
+        }
+        return height;
     }
 
     private boolean hasVisibleSubEntries() {
@@ -355,9 +463,37 @@ public class SettingModule {
         return ((int) (ar + (br - ar) * t) << 16) | ((int) (ag + (bg - ag) * t) << 8) | (int) (ab + (bb - ab) * t);
     }
 
-    private record SubEntry(String title, String subtitle, SettingWidget widget, BooleanSupplier visibleSupplier) {
+    private final class SubEntry {
+        private final String title;
+        private final String subtitle;
+        private final SettingWidget widget;
+        private final BooleanSupplier visibleSupplier;
+        private final boolean group;
+        private final List<SubEntry> children = new ArrayList<>();
+        private boolean expanded;
+        private float childProgress;
+
+        private SubEntry(String title, String subtitle, SettingWidget widget, BooleanSupplier visibleSupplier, boolean group) {
+            this.title = title;
+            this.subtitle = subtitle;
+            this.widget = widget;
+            this.visibleSupplier = visibleSupplier;
+            this.group = group;
+        }
+
         private boolean isVisible() {
             return visibleSupplier.getAsBoolean();
+        }
+
+        private boolean hasVisibleChildren() {
+            for (SubEntry child : children) if (child.isVisible()) return true;
+            return false;
+        }
+
+        private int visibleChildCount() {
+            int count = 0;
+            for (SubEntry child : children) if (child.isVisible()) count++;
+            return count;
         }
     }
 }

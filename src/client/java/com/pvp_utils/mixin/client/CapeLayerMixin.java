@@ -1,7 +1,6 @@
 package com.pvp_utils.mixin.client;
 
 import com.pvp_utils.Config;
-import com.pvp_utils.client.irc.IrcBridge;
 import com.pvp_utils.client.modules.impl.Render.CustomCapeManager;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
@@ -22,14 +21,6 @@ public abstract class CapeLayerMixin {
     private void pvp_utils$customCape(PoseStack poseStack, SubmitNodeCollector collector, int light, AvatarRenderState state, float limbSwing, float limbSwingAmount, CallbackInfo ci) {
         if (state == null) return;
         Minecraft client = Minecraft.getInstance();
-        Entity entity = client.level == null ? null : client.level.getEntity(state.id);
-        if (entity != null) {
-            PlayerSkin ircSkin = IrcBridge.overrideSkin(state.skin, entity.getUUID());
-            state.skin = ircSkin;
-            if (IrcBridge.hasLoadedCosmetic(entity.getUUID(), "cape")) {
-                state.showCape = true;
-            }
-        }
         if (!Config.customCape || client.player == null || state.id != client.player.getId()) return;
         ClientAsset.Texture cape = CustomCapeManager.texture();
         if (cape == null) return;

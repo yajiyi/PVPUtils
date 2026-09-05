@@ -14,8 +14,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -155,18 +153,18 @@ public final class Update {
     }
 
     private static UpdateResult fetchResultOnce() throws IOException, InterruptedException {
-        CompletableFuture<UpdateResponse> domestic = CompletableFuture.supplyAsync(() -> fetchResponse(1, Update::fetchDomesticUpdateText));
-        CompletableFuture<UpdateResponse> git = CompletableFuture.supplyAsync(() -> fetchResponse(2, Update::fetchGitUpdateText));
-        UpdateResponse domesticResponse = domestic.join();
-        UpdateResponse gitResponse = git.join();
+        CompletableFuture<UpdateResponse> direct = CompletableFuture.supplyAsync(() -> fetchResponse(1, Update::fetchGitUpdateText));
+        CompletableFuture<UpdateResponse> mirror = CompletableFuture.supplyAsync(() -> fetchResponse(2, Update::fetchMirrorUpdateText));
+        UpdateResponse directResponse = direct.join();
+        UpdateResponse mirrorResponse = mirror.join();
 
         UpdateResponse selected;
-        if (domesticResponse.success()) {
-            selected = domesticResponse;
-        } else if (gitResponse.success()) {
-            selected = gitResponse;
+        if (directResponse.success()) {
+            selected = directResponse;
+        } else if (mirrorResponse.success()) {
+            selected = mirrorResponse;
         } else {
-            throw new IOException(allLinesFailedMessage(domesticResponse, gitResponse));
+            throw new IOException(allLinesFailedMessage(directResponse, mirrorResponse));
         }
 
         System.out.println("[PVPUtils][Update] response received from line " + selected.line());
@@ -186,7 +184,22 @@ public final class Update {
     }
 
     private static String fetchGitUpdateText() throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder(buildGitUpdateUri())
+        return fetchUpdateText(buildGitUpdateUri());
+    }
+
+    private static String fetchMirrorUpdateText() throws IOException, InterruptedException {
+        String mirror = Config.updateMirror == null ? "" : Config.updateMirror.trim();
+        if (mirror.isBlank()) {
+            throw new IOException("Mirror route is disabled");
+        }
+        if (!mirror.endsWith("/")) {
+            mirror = mirror + "/";
+        }
+        return fetchUpdateText(URI.create(mirror + GIT_UPDATE_URL));
+    }
+
+    private static String fetchUpdateText(URI uri) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofSeconds(8))
                 .header("User-Agent", "PVPUtils-UpdateChecker")
                 .header("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -196,30 +209,9 @@ public final class Update {
                 .build();
         HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IOException("Git update request failed");
+            throw new IOException("Update request failed (HTTP " + response.statusCode() + ")");
         }
         return response.body() == null ? "" : response.body();
-    }
-
-    private static String fetchDomesticUpdateText() throws IOException, InterruptedException {
-        try {
-            Class<?> gateClass = Class.forName("com.pvp_utils.client.irc.network.IrcBuildGate");
-            Method method = gateClass.getDeclaredMethod("fetchUpdateText");
-            method.setAccessible(true);
-            Object body = method.invoke(null);
-            return body == null ? "" : body.toString();
-        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException e) {
-            throw new IOException("Line 1 is unavailable", e);
-        } catch (InvocationTargetException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof InterruptedException interrupted) {
-                throw interrupted;
-            }
-            if (cause instanceof IOException io) {
-                throw io;
-            }
-            throw new IOException("Line 1 request failed", cause);
-        }
     }
 
     private static URI buildGitUpdateUri() {
@@ -470,8 +462,8 @@ public final class Update {
 
     private record VersionCandidate(String type, String version, VersionToken token) {}
 
-    private static String allLinesFailedMessage(UpdateResponse domestic, UpdateResponse git) {
-        return "线路1：" + failureReason(domestic.error()) + "；线路2：" + failureReason(git.error());
+    private static String allLinesFailedMessage(UpdateResponse direct, UpdateResponse mirror) {
+        return "线路1：" + failureReason(direct.error()) + "；线路2：" + failureReason(mirror.error());
     }
 
     private static String failureReason(Exception error) {
